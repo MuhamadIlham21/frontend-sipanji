@@ -1,0 +1,7 @@
+services:
+  vue-app:
+    build: .
+    container_name: frontend-sipanji
+    ports:
+      - "8084:8084"
+    restart: always
