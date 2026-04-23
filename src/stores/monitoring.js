@@ -29,6 +29,7 @@ export const useMonitoringStore = defineStore('monitoring', () => {
     jenis_kontributor: '',
     kontributor_lainnya: '',
     nama_lengkap: '',
+    identitas: '',
 
     // Step 3 — { kuh: null, daker_bandara: null, daker_madinah: null, daker_mekkah: null }
     lokasi_pengawasan: {
@@ -79,6 +80,7 @@ export const useMonitoringStore = defineStore('monitoring', () => {
         return (
           !!formState.value.jenis_kontributor &&
           !!formState.value.nama_lengkap.trim() &&
+          !!formState.value.identitas.trim() &&
           (formState.value.jenis_kontributor !== 'lainnya' ||
             !!formState.value.kontributor_lainnya.trim())
         )
@@ -159,6 +161,17 @@ export const useMonitoringStore = defineStore('monitoring', () => {
     formState.value.nama_lengkap = value
     saveToLocalStorage()
   }
+
+  const setIdentitas = (value) => {
+    const cleaned = value.replace(/[^0-9a-zA-Z]/g, '')
+    formState.value.identitas = cleaned
+    saveToLocalStorage()
+  }
+
+  // const setIdentitas = (value) => {
+  //   formState.value.identitas = value
+  //   saveToLocalStorage()
+  // }
 
   const setLokasi = (kolomId, barisId) => {
     formState.value.lokasi_pengawasan[kolomId] = barisId
@@ -352,6 +365,7 @@ export const useMonitoringStore = defineStore('monitoring', () => {
         jenis_kontributor: formState.value.jenis_kontributor,
         kontributor_lainnya: formState.value.kontributor_lainnya || null,
         nama_lengkap: formState.value.nama_lengkap,
+        identitas: formState.value.identitas,
 
         // Lokasi
         lokasi_pengawasan: formState.value.lokasi_pengawasan,
@@ -464,6 +478,7 @@ export const useMonitoringStore = defineStore('monitoring', () => {
       jenis_kontributor: '',
       kontributor_lainnya: '',
       nama_lengkap: '',
+      identitas: '',
       lokasi_pengawasan: {
         kuh: null,
         daker_bandara: null,
@@ -518,6 +533,7 @@ export const useMonitoringStore = defineStore('monitoring', () => {
     setKontributor,
     setKontributorLainnya,
     setNamaLengkap,
+    setIdentitas,
     setLokasi,
     setProvinsi,
     setEmbarkasi,

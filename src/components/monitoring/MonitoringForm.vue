@@ -3,13 +3,13 @@
     <div class="w-full max-w-3xl">
       <!-- ── Header Card ── -->
       <div class="card mb-6 overflow-hidden p-0">
-        <!-- Banner gradient hijau-emas -->
-        <div class="bg-gradient-to-r from-primary to-primary-700 px-6 py-5 flex items-center gap-4">
-          <div
+        <div class="bg-gradient-to-r from-primary-700 to-primary px-6 py-5 flex items-center gap-4">
+          <!-- <div
             class="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0"
-          >
-            <span class="material-icons text-white text-2xl">mosque</span>
-          </div>
+          > -->
+          <!-- <span class="material-icons text-white text-2xl">mosque</span> -->
+          <img :src="logoURL" class="w-16 h-16" alt="Logo SiPanji" />
+          <!-- </div> -->
           <div>
             <h1 class="text-xl font-bold text-white tracking-wide">SiPanji</h1>
             <p class="text-xs text-white/70 mt-0.5">Sistem Pengendalian Operasional Haji</p>
@@ -128,6 +128,7 @@
 import { computed, onMounted, defineAsyncComponent } from 'vue'
 import { useMonitoringStore } from '@/stores/monitoring'
 import { MONITORING_STEPS } from '@/constants/monitoring'
+import logoURL from '@/assets/logo.png'
 
 const store = useMonitoringStore()
 

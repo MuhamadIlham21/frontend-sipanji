@@ -130,7 +130,7 @@ const handleLogout = async () => {
     authStore.logout()
     sidebar.is_sidebar_open = false
     sidebar.is_expanded = false
-    await router.push('/user/login')
+    await router.push({ name: 'login' })
   } catch (error) {
     console.error('Logout error:', error)
   } finally {

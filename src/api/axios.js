@@ -210,8 +210,9 @@ const handleLogout = () => {
   localStorage.removeItem('refresh_token')
   localStorage.removeItem('token_expiry')
   localStorage.removeItem('expires_in')
-  localStorage.removeItem('user_data')
-  localStorage.removeItem('menu_group_id')
+  localStorage.removeItem('auth_user')
+  localStorage.removeItem('user_role')
+  localStorage.removeItem('user_id')
 
   delete apiClient.defaults.headers.common.Authorization
 

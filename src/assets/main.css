@@ -5,20 +5,20 @@
    Primary: Hijau Tua | Secondary: Hijau Muda | Accent: Emas
    ============================================================ */
 @theme {
-  /* Primary — Hijau Tua */
-  --color-primary: #1b5e20;
-  --color-primary-50: #e8f5e9;
-  --color-primary-100: #c8e6c9;
-  --color-primary-200: #a5d6a7;
-  --color-primary-300: #81c784;
-  --color-primary-400: #66bb6a;
-  --color-primary-500: #4caf50;
-  --color-primary-600: #43a047;
-  --color-primary-700: #388e3c;
-  --color-primary-800: #2e7d32;
-  --color-primary-900: #1b5e20;
+  /* Primary — Emas / Cokelat Hijau */
+  --color-primary: #a7873f;
+  --color-primary-50: #f7f1e0;
+  --color-primary-100: #efe0c0;
+  --color-primary-200: #e3cd99;
+  --color-primary-300: #d5b66f;
+  --color-primary-400: #c9a856;
+  --color-primary-500: #a7873f;
+  --color-primary-600: #8c6f33;
+  --color-primary-700: #72582a;
+  --color-primary-800: #594322;
+  --color-primary-900: #3b2b16;
 
-  /* Secondary — Hijau Muda */
+  /* Secondary bisa tetap hijau, atau kita sesuaikan nanti kalau perlu */
   --color-secondary: #4caf50;
   --color-secondary-50: #f1f8e9;
   --color-secondary-100: #dcedc8;

@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-background text-text flex items-center justify-center p-4">
     <!-- Toast Notification -->
-    <Transition name="slide-fade">
+    <!-- <Transition name="slide-fade">
       <div v-if="authStore.isLoading || authStore.message" class="fixed top-6 right-6 z-50">
         <div
           class="flex items-center w-full max-w-sm p-4 bg-surface rounded-xl shadow-lg border border-surface-2 gap-3"
@@ -21,6 +21,61 @@
 
           <div class="flex-1 text-sm font-medium text-text">{{ authStore.message }}</div>
 
+          <button
+            type="button"
+            class="shrink-0 text-text-faint hover:text-text-muted rounded-lg p-1.5 hover:bg-surface-2 transition-colors"
+            @click="hideToast"
+            aria-label="Tutup notifikasi"
+          >
+            <span class="material-icons text-lg">close</span>
+          </button>
+        </div>
+      </div>
+    </Transition> -->
+
+    <Transition name="slide-fade">
+      <div v-if="authStore.isLoading && !authStore.message" class="fixed top-6 right-6 z-50">
+        <div
+          class="flex items-center gap-3 px-4 py-3 bg-surface rounded-xl shadow-lg border border-surface-2"
+        >
+          <svg class="w-5 h-5 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            />
+            <path
+              class="opacity-75"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              fill="currentColor"
+            />
+          </svg>
+          <span class="text-sm font-medium text-text-muted">Memproses...</span>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="slide-fade">
+      <div v-if="!authStore.isLoading && authStore.message" class="fixed top-6 right-6 z-50">
+        <div
+          class="flex items-center w-full max-w-sm p-4 bg-surface rounded-xl shadow-lg border border-surface-2 gap-3"
+          role="alert"
+        >
+          <div
+            class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+            :class="authStore.success ? 'bg-success/10' : 'bg-error/10'"
+          >
+            <span
+              class="material-icons text-xl"
+              :class="authStore.success ? 'text-success' : 'text-error'"
+            >
+              {{ authStore.success ? 'check_circle' : 'error' }}
+            </span>
+          </div>
+          <div class="flex-1 text-sm font-medium text-text">{{ authStore.message }}</div>
           <button
             type="button"
             class="shrink-0 text-text-faint hover:text-text-muted rounded-lg p-1.5 hover:bg-surface-2 transition-colors"
@@ -273,7 +328,7 @@ const onSubmit = async (values) => {
 
   if (result.success) {
     console.clear()
-    const redirectTo = route.query.redirect || '/dashboard/bpjph'
+    const redirectTo = route.query.redirect || { name: 'dashboard' }
     setTimeout(() => {
       router.replace(redirectTo)
     }, 500)

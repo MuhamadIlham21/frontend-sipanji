@@ -61,6 +61,27 @@
       </p>
     </div>
 
+    <!-- NIP / NIK / Porsi -->
+    <div class="form-group mt-4">
+      <label class="text-sm font-medium text-[var(--color-text)]"> NIP / NIK / No. Porsi </label>
+      <input
+        type="text"
+        :value="store.formState.identitas"
+        placeholder="Masukkan NIP / NIK / No. Porsi"
+        class="input-field"
+        @input="store.setIdentitas($event.target.value)"
+      />
+      <p
+        v-if="store.formState.identitas.length > 0 && store.formState.identitas.trim().length < 6"
+        class="text-xs text-[var(--color-error)]"
+      >
+        Minimal 6 karakter
+      </p>
+      <p class="text-xs text-[var(--color-text-muted)]">
+        Isi salah satu: NIP (pegawai), NIK (masyarakat), atau nomor porsi haji
+      </p>
+    </div>
+
     <!-- Preview ringkasan -->
     <Transition name="fade">
       <div
@@ -69,9 +90,13 @@
       >
         <span class="material-icons text-primary text-base align-middle mr-1">person_check</span>
         Laporan ini diisi oleh
-        <span class="font-semibold text-primary">{{ store.formState.nama_lengkap }}</span>
-        sebagai
-        <span class="font-semibold text-primary">{{ labelKontributor }}</span>
+        <span class="font-semibold text-primary">
+          {{ store.formState.nama_lengkap }}
+        </span>
+        ({{ store.formState.identitas }}) sebagai
+        <span class="font-semibold text-primary">
+          {{ labelKontributor }}
+        </span>
       </div>
     </Transition>
   </div>
