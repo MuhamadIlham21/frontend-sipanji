@@ -1,7 +1,19 @@
+version: "3.9"
+
 services:
   vue-app:
     build: .
     container_name: frontend-sipanji
-    ports:
-      - "8084:8084"
     restart: always
+
+    networks:
+      - app-network
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+networks:
+  app-network:
+    external: true
