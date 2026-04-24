@@ -1,43 +1,32 @@
-// ============================================================
-// API LAYER — Monitoring Operasional Haji (SiPanji)
-// ============================================================
 import apiClient from './axios'
 
 export const monitoringApi = {
-  // ──────────────────────────────────────────────────────────
-  // STEPPER 4 — Provinsi Embarkasi
-  // ──────────────────────────────────────────────────────────
-  // 🟢 Uncomment saat endpoint tersedia
-  // getProvinsiEmbarkasi() {
-  //   return apiClient.get('/embarkasi/provinsi')
-  // },
-
-  // ──────────────────────────────────────────────────────────
-  // STEPPER 5 — Embarkasi by Provinsi
-  // ──────────────────────────────────────────────────────────
-  // 🟢 Uncomment saat endpoint tersedia
-  // getEmbarkasiByProvinsi(provinsiId) {
-  //   return apiClient.get(`/embarkasi?provinsiId=${provinsiId}`)
-  // },
-
-  // ──────────────────────────────────────────────────────────
-  // STEPPER 6 — Pertanyaan per Accordion
-  // ──────────────────────────────────────────────────────────
-  // 🟢 Uncomment saat endpoint tersedia
-  // getQuestions(accordionId) {
-  //   return apiClient.get(`/monitoring/questions?accordionId=${accordionId}`)
-  // },
-
-  // ──────────────────────────────────────────────────────────
-  // STEPPER 6 — Submit Jawaban (per Accordion)
-  // ──────────────────────────────────────────────────────────
-  submitMonev(requestData) {
-    return apiClient.post('/monitoring/submit', requestData)
+  // ── Form Questions (Step 1–6) ──────────────────────────────
+  getFormQuestions(formId) {
+    return apiClient.get(`/questions/${formId}`)
   },
 
-  // ──────────────────────────────────────────────────────────
-  // UPLOAD — File Bukti Pengawasan
-  // ──────────────────────────────────────────────────────────
+  // ── Monev Questions (Step 7) ───────────────────────────────
+  // tindakan: 'daily-monitor' | 'temuan'
+  getMonevQuestions(formId, tindakan) {
+    return apiClient.get(`/questions/${formId}/${tindakan}`)
+  },
+
+  // ── Master Data ────────────────────────────────────────────
+  getProvinsi() {
+    return apiClient.get('/master/provinsi')
+  },
+
+  getEmbarkasi(provinsiValue) {
+    return apiClient.get(`/master/embarkasi/${provinsiValue}`)
+  },
+
+  // ── Submit ─────────────────────────────────────────────────
+  submitMonev(payload) {
+    return apiClient.post('/monitoring/submit', payload)
+  },
+
+  // ── Upload (multiple) ──────────────────────────────────────
   uploadFile(file) {
     const formData = new FormData()
     formData.append('file', file)
@@ -46,18 +35,21 @@ export const monitoringApi = {
     })
   },
 
-  // ──────────────────────────────────────────────────────────
-  // GET — Riwayat Submission (Admin)
-  // ──────────────────────────────────────────────────────────
+  // Upload multiple files — returns array of URLs
+  async uploadFiles(files) {
+    const results = await Promise.all(
+      Array.from(files).map((file) => monitoringApi.uploadFile(file))
+    )
+    return results.map((res) => res.data?.data?.url || res.data?.url || null).filter(Boolean)
+  },
+
+  // ── Riwayat (Admin) ────────────────────────────────────────
   getSubmissions(params = {}) {
-    const query = new URLSearchParams({
-      page: params.page || 1,
-      size: params.limit || 10,
-    })
-    if (params.tab_id) query.append('tabId', params.tab_id)
-    if (params.accordion_id) query.append('accordionId', params.accordion_id)
-    if (params.date_from) query.append('startDate', params.date_from)
-    if (params.date_to) query.append('endDate', params.date_to)
+    const query = new URLSearchParams({ page: params.page || 1, size: params.limit || 10 })
+    if (params.tab_id)       query.append('tabId',       params.tab_id)
+    if (params.section_id)   query.append('sectionId',   params.section_id)
+    if (params.date_from)    query.append('startDate',   params.date_from)
+    if (params.date_to)      query.append('endDate',     params.date_to)
     return apiClient.get(`/monitoring/submissions?${query}`)
   },
 

@@ -1,192 +1,115 @@
 <template>
-  <div>
-    <p class="text-sm mb-1" style="color: var(--color-text-muted)">
-      Pilih sektor untuk setiap unit yang relevan dengan lokasi pengawasan Anda.
-    </p>
-
-    <!-- Info minimal pilih 1 -->
-    <div
-      class="flex items-center gap-2 text-xs px-3 py-2.5 rounded-xl border mb-6"
-      style="
-        background: var(--color-accent-50);
-        border-color: var(--color-accent-100);
-        color: var(--color-text-muted);
-      "
-    >
-      <span class="material-icons text-sm" style="color: var(--color-accent-600)">info</span>
-      <span>Minimal <strong>satu unit</strong> harus dipilih. Satu sektor per unit.</span>
+  <div class="step-container">
+    <div class="step-header">
+      <h2 class="step-title">Pilih Lokasi Pengawasan</h2>
+      <p class="step-subtitle">Tentukan sektor dan lokasi pengawasan yang dituju</p>
     </div>
 
-    <!-- ── Grid Dropdown per Kolom ── -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div v-for="kolom in KOLOM_LOKASI" :key="kolom.id" class="flex flex-col gap-2">
-        <!-- Label kolom -->
-        <div class="flex items-center justify-between">
-          <label
-            class="text-sm font-semibold flex items-center gap-1.5"
-            style="color: var(--color-text)"
-          >
-            <span
-              class="w-2 h-2 rounded-full shrink-0"
-              :class="
-                store.formState.lokasi_pengawasan[kolom.id]
-                  ? 'bg-primary'
-                  : 'bg-[var(--color-text-faint)]'
-              "
-            />
-            {{ kolom.label }}
-          </label>
+    <!-- Loading State -->
+    <div v-if="store.isLoadingForm" class="flex flex-col gap-4 mt-4">
+      <div class="skeleton h-12 rounded-lg"></div>
+      <div class="skeleton h-12 rounded-lg"></div>
+    </div>
 
-          <!-- Tombol clear per kolom -->
-          <button
-            v-if="store.formState.lokasi_pengawasan[kolom.id]"
-            class="text-xs flex items-center gap-0.5 transition-colors"
-            style="color: var(--color-text-faint)"
-            @click="store.setLokasi(kolom.id, null)"
-          >
-            <span class="material-icons text-xs">close</span>
-            Hapus
-          </button>
-        </div>
+    <!-- Error State -->
+    <div v-else-if="store.formLoadError" class="error-state">
+      <span class="material-icons text-[var(--color-error)] text-3xl">error_outline</span>
+      <p class="text-sm text-[var(--color-error)] mt-2">{{ store.formLoadError }}</p>
+      <button class="btn-secondary mt-3" @click="store.fetchFormData()">Coba Lagi</button>
+    </div>
 
-        <!-- Dropdown wrapper dengan custom chevron -->
-        <div class="relative">
+    <div v-else class="flex flex-col gap-5 mt-4">
+      <!-- Dropdown 1 — Sektor Pengawasan -->
+      <div class="form-group">
+        <label class="form-label">
+          Sektor Pengawasan
+          <span class="text-[var(--color-error)]">*</span>
+        </label>
+        <div class="select-wrapper">
           <select
-            :value="store.formState.lokasi_pengawasan[kolom.id] || ''"
-            class="w-full appearance-none rounded-2xl px-4 py-3 pr-10 text-sm border-2 focus:outline-none transition-all duration-150 cursor-pointer"
-            :class="
-              store.formState.lokasi_pengawasan[kolom.id]
-                ? 'border-primary bg-primary-50 font-medium'
-                : 'border-[var(--color-surface-2)] bg-[var(--color-surface)]'
-            "
-            :style="
-              store.formState.lokasi_pengawasan[kolom.id]
-                ? 'color: var(--color-primary)'
-                : 'color: var(--color-text-faint)'
-            "
-            @change="handleChange(kolom.id, $event.target.value)"
+            class="input-field"
+            :value="store.formState.sektor_id"
+            @change="onSektorChange($event.target.value)"
           >
-            <option value="" disabled>— Pilih Sektor —</option>
-            <option v-for="baris in BARIS_LOKASI" :key="baris.id" :value="baris.id">
-              {{ baris.label }}
+            <option value="" disabled>-- Pilih Sektor --</option>
+            <option v-for="opt in store.sektorOptions" :key="opt.id" :value="opt.id">
+              {{ opt.label }}
             </option>
           </select>
+          <span class="material-icons select-icon">expand_more</span>
+        </div>
 
-          <!-- Custom chevron icon -->
-          <span
-            class="material-icons absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xl transition-colors"
-            :class="
-              store.formState.lokasi_pengawasan[kolom.id]
-                ? 'text-primary'
-                : 'text-[var(--color-text-faint)]'
-            "
-          >
-            expand_more
+        <!-- Preview pilihan sektor -->
+        <div v-if="store.formState.sektor_label" class="selected-preview mt-2">
+          <span class="material-icons text-sm text-[var(--color-primary)]">location_on</span>
+          <span class="text-sm text-[var(--color-text-muted)]">
+            Dipilih:
+            <strong class="text-[var(--color-text)]">{{ store.formState.sektor_label }}</strong>
           </span>
         </div>
-
-        <!-- Chip konfirmasi pilihan -->
-        <Transition name="fade">
-          <div
-            v-if="store.formState.lokasi_pengawasan[kolom.id]"
-            class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium"
-            style="background: var(--color-primary-50); color: var(--color-primary)"
-          >
-            <span class="material-icons text-xs">location_on</span>
-            <span class="flex-1 truncate">
-              {{ getLabelBaris(store.formState.lokasi_pengawasan[kolom.id]) }}
-            </span>
-            <span
-              class="px-1.5 py-0.5 rounded-full text-white text-xs font-bold"
-              style="background: var(--color-primary)"
-            >
-              ✓
-            </span>
-          </div>
-        </Transition>
       </div>
-    </div>
 
-    <!-- ── Ringkasan semua pilihan ── -->
-    <Transition name="fade">
-      <div
-        v-if="adaPilihan"
-        class="mt-6 rounded-2xl border p-4"
-        style="background: var(--color-surface-2); border-color: var(--color-surface-2)"
-      >
-        <p
-          class="text-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-2"
-          style="color: var(--color-text-muted)"
-        >
-          <span class="material-icons text-sm text-primary">summarize</span>
-          Ringkasan Lokasi Terpilih
-        </p>
-        <div class="flex flex-col gap-2">
-          <div
-            v-for="kolom in pilihanAktif"
-            :key="kolom.id"
-            class="flex items-center justify-between text-sm"
+      <!-- Dropdown 2 — Lokasi Pengawasan -->
+      <div class="form-group">
+        <label class="form-label">
+          Lokasi Pengawasan
+          <span class="text-[var(--color-error)]">*</span>
+        </label>
+        <div class="select-wrapper">
+          <select
+            class="input-field"
+            :value="store.formState.lokasi_id"
+            @change="onLokasiChange($event.target.value)"
           >
-            <span style="color: var(--color-text-muted)" class="flex items-center gap-2">
-              <span class="material-icons text-xs text-primary">chevron_right</span>
-              {{ kolom.label }}
-            </span>
-            <span
-              class="font-semibold text-xs px-2 py-0.5 rounded-full"
-              style="background: var(--color-primary-50); color: var(--color-primary)"
-            >
-              {{ getLabelBaris(store.formState.lokasi_pengawasan[kolom.id]) }}
-            </span>
-          </div>
+            <option value="" disabled>-- Pilih Lokasi --</option>
+            <option v-for="opt in store.lokasiOptions" :key="opt.id" :value="opt.id">
+              {{ opt.label }}
+            </option>
+          </select>
+          <span class="material-icons select-icon">expand_more</span>
+        </div>
+
+        <!-- Preview pilihan lokasi -->
+        <div v-if="store.formState.lokasi_label" class="selected-preview mt-2">
+          <span class="material-icons text-sm text-[var(--color-primary)]">business</span>
+          <span class="text-sm text-[var(--color-text-muted)]">
+            Dipilih:
+            <strong class="text-[var(--color-text)]">{{ store.formState.lokasi_label }}</strong>
+          </span>
         </div>
       </div>
-    </Transition>
 
-    <!-- Validasi: belum ada pilihan -->
-    <Transition name="fade">
-      <p
-        v-if="showValidasi"
-        class="mt-3 text-xs flex items-center gap-1"
-        style="color: var(--color-error)"
-      >
-        <span class="material-icons text-sm">error_outline</span>
-        Pilih minimal satu lokasi pengawasan untuk melanjutkan.
-      </p>
-    </Transition>
+      <!-- Ringkasan pilihan (muncul jika keduanya sudah dipilih) -->
+      <Transition name="fade">
+        <div v-if="store.formState.sektor_id && store.formState.lokasi_id" class="summary-card">
+          <span class="material-icons text-[var(--color-primary)] text-xl">check_circle</span>
+          <div class="flex flex-col gap-0.5">
+            <p class="text-xs text-[var(--color-text-muted)]">Lokasi pengawasan dipilih</p>
+            <p class="text-sm font-semibold text-[var(--color-text)]">
+              {{ store.formState.sektor_label }}
+            </p>
+            <p class="text-xs text-[var(--color-text-muted)]">
+              {{ store.formState.lokasi_label }}
+            </p>
+          </div>
+        </div>
+      </Transition>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
 import { useMonitoringStore } from '@/stores/monitoring'
-import { KOLOM_LOKASI, BARIS_LOKASI } from '@/data/lokasi-pengawasan'
 
 const store = useMonitoringStore()
 
-// Tampilkan pesan validasi hanya setelah user berinteraksi
-const sudahInteraksi = ref(false)
-
-const handleChange = (kolomId, value) => {
-  sudahInteraksi.value = true
-  // Jika pilih placeholder kosong, clear
-  store.setLokasi(kolomId, value || null)
+function onSektorChange(selectedId) {
+  const option = store.sektorOptions.find((o) => o.id === selectedId)
+  if (option) store.setSektor(option)
 }
 
-const adaPilihan = computed(() =>
-  Object.values(store.formState.lokasi_pengawasan).some((v) => v !== null),
-)
-
-const showValidasi = computed(() => sudahInteraksi.value && !adaPilihan.value)
-
-// Kolom yang sudah ada pilihannya (untuk ringkasan)
-const pilihanAktif = computed(() =>
-  KOLOM_LOKASI.filter((k) => store.formState.lokasi_pengawasan[k.id] !== null),
-)
-
-const getLabelBaris = (barisId) => BARIS_LOKASI.find((b) => b.id === barisId)?.label || barisId
-
-// Reset interaksi jika semua di-clear
-watch(adaPilihan, (val) => {
-  if (!val) sudahInteraksi.value = false
-})
+function onLokasiChange(selectedId) {
+  const option = store.lokasiOptions.find((o) => o.id === selectedId)
+  if (option) store.setLokasi(option)
+}
 </script>

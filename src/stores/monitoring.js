@@ -1,563 +1,536 @@
-// ============================================================
-// PINIA STORE — Monitoring Operasional Haji (SiPanji)
-// ============================================================
-import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { ref, computed, watch } from 'vue'
 import { monitoringApi } from '@/api/monitoring-api'
-import { DUMMY_QUESTIONS } from '@/data/monev-questions'
-import { PROVINSI_EMBARKASI, EMBARKASI_BY_PROVINSI } from '@/data/embarkasi'
-import { LS_KEY_FORM_STATE, LS_KEY_STEP } from '@/constants/monitoring'
+import { MONITORING_FORM_ID, MONITORING_STEPS } from '@/constants/monitoring'
 
 export const useMonitoringStore = defineStore('monitoring', () => {
-  // ══════════════════════════════════════════════════════════
-  // STATE
-  // ══════════════════════════════════════════════════════════
 
-  const isLoading = ref(false)
-  const isError = ref(false)
-  const errorMessage = ref('')
+  // ============================================================
+  // STATE — Loading & Error
+  // ============================================================
+  const isLoadingForm  = ref(false)
+  const isLoadingMonev = ref(false)
+  const isLoadingEmb   = ref(false)
+  const formLoadError  = ref(null)
+  const monevLoadError = ref(null)
 
-  // Stepper navigation
-  const currentStep = ref(0)
+  // ============================================================
+  // STATE — Options Step 1–6 (dari /questions/:formId)
+  // ============================================================
+  const paketOptions       = ref([])
+  const kontributorOptions = ref([])
+  const sektorOptions      = ref([])
+  const lokasiOptions      = ref([])
+  const tindakanOptions    = ref([])
 
-  // Form state — semua data dari 6 stepper
+  // Step 4 & 5 — dari API master terpisah (tidak ada UUID)
+  const provinsiOptions  = ref([])  // { label, value }
+  const embarkasiOptions = ref([])  // { label, value }
+
+  // Meta question ID (untuk payload submit)
+  const questionMeta = ref({
+    paket_id:       '',
+    kontributor_id: '',
+    sektor_id_q:    '',
+    lokasi_id_q:    '',
+    provinsi_id_q:  '',
+    embarkasi_id_q: '',
+    tindakan_id_q:  '',
+  })
+
+  // ============================================================
+  // STATE — Monev Data (Step 7)
+  // Struktur: { tabs: [ { id, label, sections: [ { id, label, questions: [] } ] } ] }
+  // ============================================================
+  const monevTabs = ref([])
+
+  // ============================================================
+  // STATE — Form State
+  // ============================================================
   const formState = ref({
     // Step 1
-    jenis_paket: '',
+    paket_id: '', paket_label: '', paket_value: '',
 
     // Step 2
-    jenis_kontributor: '',
+    kontributor_id:     '',
+    kontributor_label:  '',
+    kontributor_value:  '',
     kontributor_lainnya: '',
-    nama_lengkap: '',
-    identitas: '',
+    nama_lengkap:       '',
+    identitas:          '',
 
-    // Step 3 — { kuh: null, daker_bandara: null, daker_madinah: null, daker_mekkah: null }
-    lokasi_pengawasan: {
-      kuh: null,
-      daker_bandara: null,
-      daker_madinah: null,
-      daker_mekkah: null,
-    },
+    // Step 3
+    sektor_id: '', sektor_label: '', sektor_value: '',
+    lokasi_id: '', lokasi_label: '', lokasi_value: '',
 
-    // Step 4
-    provinsi_id: '',
-    provinsi_label: '',
+    // Step 4 — value-based (tidak ada UUID dari API)
+    provinsi_value: '', provinsi_label: '',
 
-    // Step 5
-    embarkasi_id: '',
-    embarkasi_label: '',
+    // Step 5 — value-based, dependen provinsi
+    embarkasi_value: '', embarkasi_label: '',
 
-    // Step 6 — Monev
-    active_tab: '6.1',
-    active_accordion: null,
-    // Jawaban tersimpan per accordion: { '6.1.1': { answers: {}, files: [] }, ... }
+    // Step 6
+    tindakan_id: '', tindakan_label: '', tindakan_value: '',
+
+    // Step 7 — { [sectionId]: { [questionId]: value } }
     monev_answers: {},
   })
 
-  // Step 4 — Daftar provinsi
-  const provinsiList = ref([])
+  // ============================================================
+  // STATE — Stepper
+  // ============================================================
+  const currentStep = ref(1)
+  const totalSteps  = computed(() => MONITORING_STEPS.length)
+  const isLastStep  = computed(() => currentStep.value === totalSteps.value)
+  const isFirstStep = computed(() => currentStep.value === 1)
 
-  // Step 5 — Daftar embarkasi (filtered by provinsi)
-  const embarkasi_list = ref([])
+  // ============================================================
+  // STATE — Submit
+  // ============================================================
+  const isSubmitting             = ref(false)
+  const submitError              = ref(null)
+  const submitSuccess            = ref(false)
+  const lastSubmittedSectionId   = ref(null)
+  // Track section mana saja yang sudah di-submit
+  const submittedSections        = ref(new Set())
 
-  // Step 6 — Pertanyaan aktif (array untuk accordion yang sedang dibuka)
-  const activeQuestions = ref([])
-  const isLoadingQuestions = ref(false)
+  // ============================================================
+  // ACTION — Fetch Form Questions (Step 1–6)
+  // ============================================================
+  async function fetchFormData() {
+    if (paketOptions.value.length > 0) return
 
-  // Submit result
-  const submitResult = ref(null)
-  const showSuccessModal = ref(false)
+    isLoadingForm.value = true
+    formLoadError.value = null
 
-  // ══════════════════════════════════════════════════════════
-  // COMPUTED
-  // ══════════════════════════════════════════════════════════
+    try {
+      const [formRes, provinsiRes] = await Promise.all([
+        monitoringApi.getFormQuestions(MONITORING_FORM_ID),
+        monitoringApi.getProvinsi(),
+      ])
 
-  const isStepValid = computed(() => (step) => {
-    switch (step) {
-      case 0:
-        return !!formState.value.jenis_paket
-      case 1:
-        return (
-          !!formState.value.jenis_kontributor &&
-          !!formState.value.nama_lengkap.trim() &&
-          !!formState.value.identitas.trim() &&
-          (formState.value.jenis_kontributor !== 'lainnya' ||
-            !!formState.value.kontributor_lainnya.trim())
-        )
-      case 2: {
-        // Minimal 1 kolom lokasi dipilih
-        const lokasi = formState.value.lokasi_pengawasan
-        return Object.values(lokasi).some((v) => v !== null)
+      if (!formRes.data.success)     throw new Error(formRes.data.message)
+      if (!provinsiRes.data.success) throw new Error(provinsiRes.data.message)
+
+      _parseFormQuestions(formRes.data.data)
+
+      // Provinsi — tidak ada UUID, langsung pakai label+value
+      provinsiOptions.value = provinsiRes.data.data.map((p) => ({
+        label: p.label,
+        value: p.value,
+      }))
+    } catch (err) {
+      formLoadError.value = err?.response?.data?.message || err.message || 'Gagal memuat data form'
+    } finally {
+      isLoadingForm.value = false
+    }
+  }
+
+  function _parseFormQuestions(items) {
+    items.forEach((item) => {
+      if (item.type !== 'question') return
+      const opts = _mapOptions(item.options || [])
+
+      switch (item.step_no) {
+        case 1:
+          paketOptions.value = opts
+          questionMeta.value.paket_id = item.id
+          break
+        case 2:
+          kontributorOptions.value = opts
+          questionMeta.value.kontributor_id = item.id
+          break
+        case 3:
+          if (item.order_no === 3) {
+            sektorOptions.value = opts
+            questionMeta.value.sektor_id_q = item.id
+          } else if (item.order_no === 4) {
+            lokasiOptions.value = opts
+            questionMeta.value.lokasi_id_q = item.id
+          }
+          break
+        case 4:
+          // Options kosong — dari /master/provinsi
+          questionMeta.value.provinsi_id_q = item.id
+          break
+        case 5:
+          // Options kosong — dari /master/embarkasi/:provinsi
+          questionMeta.value.embarkasi_id_q = item.id
+          break
+        case 6:
+          tindakanOptions.value = opts
+          questionMeta.value.tindakan_id_q = item.id
+          break
       }
-      case 3:
-        return !!formState.value.provinsi_id
-      case 4:
-        return !!formState.value.embarkasi_id
-      default:
-        return true
-    }
-  })
-
-  const canProceed = computed(() => isStepValid.value(currentStep.value))
-
-  const activeAccordionAnswers = computed(() => {
-    const accordionId = formState.value.active_accordion
-    if (!accordionId) return {}
-    return formState.value.monev_answers[accordionId]?.answers || {}
-  })
-
-  const activeAccordionFiles = computed(() => {
-    const accordionId = formState.value.active_accordion
-    if (!accordionId) return []
-    return formState.value.monev_answers[accordionId]?.files || []
-  })
-
-  // ══════════════════════════════════════════════════════════
-  // ACTIONS — STEPPER NAVIGATION
-  // ══════════════════════════════════════════════════════════
-
-  const goToStep = (step) => {
-    currentStep.value = step
-    saveToLocalStorage()
+    })
   }
 
-  const nextStep = () => {
-    if (currentStep.value < 5) {
-      currentStep.value++
-      saveToLocalStorage()
+  function _mapOptions(rawOptions) {
+    return rawOptions
+      .slice()
+      .sort((a, b) => a.order_no - b.order_no)
+      .map((o) => ({ id: o.id, label: o.label, value: o.value, order_no: o.order_no }))
+  }
+
+  // ============================================================
+  // ACTION — Fetch Embarkasi (dependen provinsi)
+  // ============================================================
+  async function fetchEmbarkasi(provinsiValue) {
+    if (!provinsiValue) {
+      embarkasiOptions.value = []
+      return
+    }
+
+    isLoadingEmb.value = true
+    try {
+      const { data: res } = await monitoringApi.getEmbarkasi(provinsiValue)
+      if (!res.success) throw new Error(res.message)
+      embarkasiOptions.value = res.data.map((e) => ({ label: e.label, value: e.value }))
+    } catch (err) {
+      embarkasiOptions.value = []
+      console.error('Gagal fetch embarkasi:', err.message)
+    } finally {
+      isLoadingEmb.value = false
     }
   }
 
-  const prevStep = () => {
-    if (currentStep.value > 0) {
-      currentStep.value--
-      saveToLocalStorage()
+  // ============================================================
+  // ACTION — Fetch Monev Questions (Step 7)
+  // Dipanggil saat user masuk Step 7, berdasarkan tindakan_value
+  // ============================================================
+  async function fetchMonevData() {
+    const tindakan = formState.value.tindakan_value
+    if (!tindakan) return
+
+    // Sudah di-fetch untuk tindakan ini → skip
+    if (monevTabs.value.length > 0 && _lastFetchedTindakan === tindakan) return
+
+    isLoadingMonev.value = true
+    monevLoadError.value = null
+    _lastFetchedTindakan = tindakan
+
+    try {
+      // Map tindakan_value → endpoint segment
+      const endpoint = tindakan === 'daily_monitor' ? 'daily-monitor' : tindakan
+      const { data: res } = await monitoringApi.getMonevQuestions(MONITORING_FORM_ID, endpoint)
+      if (!res.success) throw new Error(res.message)
+      _parseMonevData(res.data)
+    } catch (err) {
+      monevLoadError.value = err?.response?.data?.message || err.message || 'Gagal memuat pertanyaan'
+      monevTabs.value = []
+    } finally {
+      isLoadingMonev.value = false
     }
   }
 
-  // ══════════════════════════════════════════════════════════
-  // ACTIONS — FORM STATE MUTATIONS
-  // ══════════════════════════════════════════════════════════
+  let _lastFetchedTindakan = null
 
-  const setJenisPaket = (value) => {
-    formState.value.jenis_paket = value
-    saveToLocalStorage()
-  }
-
-  const setKontributor = (value) => {
-    formState.value.jenis_kontributor = value
-    if (value !== 'lainnya') {
-      formState.value.kontributor_lainnya = ''
+  function _parseMonevData(data) {
+    // Struktur: data[0] = group → children = tabs → children = sections → children = questions
+    const group = data.find((item) => item.type === 'group')
+    if (!group) {
+      // Fallback: temuan — flat array of questions (tidak ada tab/section)
+      monevTabs.value = [{
+        id:       'temuan',
+        label:    'Temuan',
+        sections: [{
+          id:        'temuan-section',
+          label:     'Formulir Temuan',
+          questions: data
+            .filter((q) => q.type === 'question')
+            .sort((a, b) => a.order_no - b.order_no),
+        }],
+      }]
+      return
     }
-    saveToLocalStorage()
+
+    monevTabs.value = (group.children || [])
+      .filter((tab) => tab.type === 'tab')
+      .sort((a, b) => a.order_no - b.order_no)
+      .map((tab) => ({
+        id:    tab.id,
+        label: tab.label,
+        sections: (tab.children || [])
+          .filter((s) => s.type === 'section')
+          .sort((a, b) => a.order_no - b.order_no)
+          .map((section) => ({
+            id:        section.id,
+            label:     section.label,
+            questions: (section.children || [])
+              .filter((q) => q.type === 'question')
+              .sort((a, b) => a.order_no - b.order_no),
+          })),
+      }))
   }
 
-  const setKontributorLainnya = (value) => {
-    formState.value.kontributor_lainnya = value
-    saveToLocalStorage()
+  // ============================================================
+  // ACTION — Setters
+  // ============================================================
+  function setPaket(option) {
+    formState.value.paket_id    = option.id
+    formState.value.paket_label = option.label
+    formState.value.paket_value = option.value
   }
 
-  const setNamaLengkap = (value) => {
-    formState.value.nama_lengkap = value
-    saveToLocalStorage()
+  function setKontributor(option) {
+    formState.value.kontributor_id    = option.id
+    formState.value.kontributor_label = option.label
+    formState.value.kontributor_value = option.value
   }
 
-  const setIdentitas = (value) => {
-    const cleaned = value.replace(/[^0-9a-zA-Z]/g, '')
-    formState.value.identitas = cleaned
-    saveToLocalStorage()
+  function setKontributorLainnya(val) {
+    formState.value.kontributor_lainnya = val
   }
 
-  // const setIdentitas = (value) => {
-  //   formState.value.identitas = value
-  //   saveToLocalStorage()
-  // }
-
-  const setLokasi = (kolomId, barisId) => {
-    formState.value.lokasi_pengawasan[kolomId] = barisId
-    saveToLocalStorage()
+  function setNamaLengkap(val) {
+    formState.value.nama_lengkap = val
   }
 
-  const setProvinsi = (id, label) => {
-    formState.value.provinsi_id = id
-    formState.value.provinsi_label = label
+  function setIdentitas(val) {
+    formState.value.identitas = val
+  }
+
+  function setSektor(option) {
+    formState.value.sektor_id    = option.id
+    formState.value.sektor_label = option.label
+    formState.value.sektor_value = option.value
+  }
+
+  function setLokasi(option) {
+    formState.value.lokasi_id    = option.id
+    formState.value.lokasi_label = option.label
+    formState.value.lokasi_value = option.value
+  }
+
+  function setProvinsi(option) {
+    formState.value.provinsi_value = option.value
+    formState.value.provinsi_label = option.label
     // Reset embarkasi saat provinsi berubah
-    formState.value.embarkasi_id = ''
+    formState.value.embarkasi_value = ''
     formState.value.embarkasi_label = ''
-    saveToLocalStorage()
+    embarkasiOptions.value = []
+    // Fetch embarkasi baru
+    fetchEmbarkasi(option.value)
   }
 
-  const setEmbarkasi = (id, label) => {
-    formState.value.embarkasi_id = id
-    formState.value.embarkasi_label = label
-    saveToLocalStorage()
+  function setEmbarkasi(option) {
+    formState.value.embarkasi_value = option.value
+    formState.value.embarkasi_label = option.label
   }
 
-  const setActiveTab = (tabId) => {
-    formState.value.active_tab = tabId
-    formState.value.active_accordion = null
-    activeQuestions.value = []
-    saveToLocalStorage()
-  }
-
-  const setActiveAccordion = (accordionId) => {
-    // Toggle: tutup jika sama
-    if (formState.value.active_accordion === accordionId) {
-      formState.value.active_accordion = null
-      activeQuestions.value = []
-    } else {
-      formState.value.active_accordion = accordionId
-      loadQuestions(accordionId)
+  function setTindakan(option) {
+    // Jika tindakan berubah, reset monev data & jawaban
+    if (formState.value.tindakan_value !== option.value) {
+      monevTabs.value = []
+      formState.value.monev_answers = {}
+      submittedSections.value = new Set()
+      _lastFetchedTindakan = null
     }
-    saveToLocalStorage()
+    formState.value.tindakan_id    = option.id
+    formState.value.tindakan_label = option.label
+    formState.value.tindakan_value = option.value
   }
 
-  // ══════════════════════════════════════════════════════════
-  // ACTIONS — STEP 4 & 5: PROVINSI & EMBARKASI
-  // ══════════════════════════════════════════════════════════
+  function setMonevAnswer(sectionId, questionId, value) {
+    if (!formState.value.monev_answers[sectionId]) {
+      formState.value.monev_answers[sectionId] = {}
+    }
+    formState.value.monev_answers[sectionId][questionId] = value
+  }
 
-  const fetchProvinsi = async () => {
+  function clearMonevSection(sectionId) {
+    delete formState.value.monev_answers[sectionId]
+  }
+
+  // ============================================================
+  // COMPUTED — Validasi per Step
+  // ============================================================
+  const isStepValid = computed(() => {
+    const f = formState.value
+    return {
+      1: !!f.paket_id,
+      2: !!f.kontributor_id &&
+         f.nama_lengkap.trim().length >= 3 &&
+         f.identitas.trim().length >= 6,
+      3: !!f.sektor_id && !!f.lokasi_id,
+      4: !!f.provinsi_value,
+      5: !!f.embarkasi_value,
+      6: !!f.tindakan_id,
+      7: true, // validasi per section di accordion
+    }
+  })
+
+  const isCurrentStepValid = computed(
+    () => isStepValid.value[currentStep.value] ?? false
+  )
+
+  // ============================================================
+  // ACTION — Navigasi
+  // ============================================================
+  function nextStep() {
+    if (currentStep.value < totalSteps.value) {
+      currentStep.value++
+      // Auto-fetch monev saat masuk step 7
+      if (currentStep.value === 7) fetchMonevData()
+    }
+  }
+
+  function prevStep() {
+    if (currentStep.value > 1) currentStep.value--
+  }
+
+  function goToStep(n) {
+    if (n >= 1 && n <= totalSteps.value) {
+      currentStep.value = n
+      if (n === 7) fetchMonevData()
+    }
+  }
+
+  // ============================================================
+  // ACTION — Build Payload
+  // ============================================================
+  function buildPayload(sectionId = null) {
+    const f    = formState.value
+    const meta = questionMeta.value
+
+    const baseAnswers = [
+      { question_id: meta.paket_id,      option_id: f.paket_id,      value: f.paket_value },
+      { question_id: meta.kontributor_id, option_id: f.kontributor_id, value: f.kontributor_value },
+      { question_id: meta.sektor_id_q,   option_id: f.sektor_id,     value: f.sektor_value },
+      { question_id: meta.lokasi_id_q,   option_id: f.lokasi_id,     value: f.lokasi_value },
+      // Provinsi & Embarkasi — tidak ada option_id (value-based)
+      { question_id: meta.provinsi_id_q,  option_id: null, value: f.provinsi_value },
+      { question_id: meta.embarkasi_id_q, option_id: null, value: f.embarkasi_value },
+      { question_id: meta.tindakan_id_q,  option_id: f.tindakan_id, value: f.tindakan_value },
+    ]
+
+    const base = {
+      form_id:      MONITORING_FORM_ID,
+      nama_lengkap: f.nama_lengkap,
+      identitas:    f.identitas,
+      answers:      baseAnswers,
+    }
+
+    if (sectionId) {
+      return {
+        ...base,
+        section_id:    sectionId,
+        monev_answers: f.monev_answers[sectionId] || {},
+      }
+    }
+
+    return { ...base, monev_answers: f.monev_answers }
+  }
+
+  // ============================================================
+  // ACTION — Submit
+  // ============================================================
+  async function submitMonev(sectionId) {
+    isSubmitting.value  = true
+    submitError.value   = null
+    submitSuccess.value = false
+
     try {
-      isLoading.value = true
-
-      // ──────────────────────────────────────────────────────
-      // 📦 VERSI INTERNAL (aktif sekarang)
-      // ──────────────────────────────────────────────────────
-      provinsiList.value = PROVINSI_EMBARKASI
-      return provinsiList.value
-
-      // ──────────────────────────────────────────────────────
-      // 🟢 VERSI API — Uncomment saat endpoint tersedia
-      // ──────────────────────────────────────────────────────
-      // const response = await monitoringApi.getProvinsiEmbarkasi()
-      // if (response.data.success) {
-      //   provinsiList.value = response.data.data
-      // }
-      // return provinsiList.value
-    } catch (error) {
-      isError.value = true
-      console.error('Failed to fetch provinsi:', error)
-      return []
+      const payload = buildPayload(sectionId)
+      await monitoringApi.submitMonev(payload)
+      submittedSections.value.add(sectionId)
+      lastSubmittedSectionId.value = sectionId
+      submitSuccess.value = true
+    } catch (err) {
+      submitError.value = err?.response?.data?.message || err.message || 'Gagal menyimpan data'
+      throw err
     } finally {
-      isLoading.value = false
+      isSubmitting.value = false
     }
   }
 
-  const fetchEmbarkasiByProvinsi = async (provinsiId) => {
+  function isSectionSubmitted(sectionId) {
+    return submittedSections.value.has(sectionId)
+  }
+
+  // ============================================================
+  // ACTION — Upload File
+  // ============================================================
+  async function uploadFile(file) {
     try {
-      isLoading.value = true
-
-      // ──────────────────────────────────────────────────────
-      // 📦 VERSI INTERNAL (aktif sekarang)
-      // ──────────────────────────────────────────────────────
-      embarkasi_list.value = EMBARKASI_BY_PROVINSI[provinsiId] || []
-      return embarkasi_list.value
-
-      // ──────────────────────────────────────────────────────
-      // 🟢 VERSI API — Uncomment saat endpoint tersedia
-      // ──────────────────────────────────────────────────────
-      // const response = await monitoringApi.getEmbarkasiByProvinsi(provinsiId)
-      // if (response.data.success) {
-      //   embarkasi_list.value = response.data.data
-      // }
-      // return embarkasi_list.value
-    } catch (error) {
-      isError.value = true
-      console.error('Failed to fetch embarkasi:', error)
-      return []
-    } finally {
-      isLoading.value = false
+      const { data: res } = await monitoringApi.uploadFile(file)
+      return res.data?.url || res.url || null
+    } catch (err) {
+      throw new Error(err?.response?.data?.message || 'Gagal mengupload file')
     }
   }
 
-  // ══════════════════════════════════════════════════════════
-  // ACTIONS — STEP 6: QUESTIONS & ANSWERS
-  // ══════════════════════════════════════════════════════════
-
-  const loadQuestions = async (accordionId) => {
+  async function uploadFiles(files) {
     try {
-      isLoadingQuestions.value = true
-
-      // ──────────────────────────────────────────────────────
-      // 📦 VERSI DUMMY (aktif sekarang)
-      // ──────────────────────────────────────────────────────
-      await new Promise((resolve) => setTimeout(resolve, 200)) // simulasi loading
-      activeQuestions.value = DUMMY_QUESTIONS[accordionId] || []
-
-      // ──────────────────────────────────────────────────────
-      // 🟢 VERSI API — Uncomment saat endpoint tersedia
-      // ──────────────────────────────────────────────────────
-      // const response = await monitoringApi.getQuestions(accordionId)
-      // if (response.data.success) {
-      //   activeQuestions.value = response.data.data
-      // }
-    } catch (error) {
-      console.error('Failed to load questions:', error)
-      activeQuestions.value = []
-    } finally {
-      isLoadingQuestions.value = false
+      return await monitoringApi.uploadFiles(files)
+    } catch (err) {
+      throw new Error(err?.response?.data?.message || 'Gagal mengupload file')
     }
   }
 
-  const setAnswer = (accordionId, questionId, value) => {
-    if (!formState.value.monev_answers[accordionId]) {
-      formState.value.monev_answers[accordionId] = { answers: {}, files: [] }
-    }
-    formState.value.monev_answers[accordionId].answers[questionId] = value
-    saveToLocalStorage()
-  }
-
-  const setAnswerLainnya = (accordionId, questionId, value) => {
-    if (!formState.value.monev_answers[accordionId]) {
-      formState.value.monev_answers[accordionId] = { answers: {}, files: [] }
-    }
-    const key = `${questionId}_lainnya`
-    formState.value.monev_answers[accordionId].answers[key] = value
-    saveToLocalStorage()
-  }
-
-  const addFile = (accordionId, questionId, file) => {
-    if (!formState.value.monev_answers[accordionId]) {
-      formState.value.monev_answers[accordionId] = { answers: {}, files: [] }
-    }
-    formState.value.monev_answers[accordionId].files.push({ questionId, file })
-  }
-
-  const removeFile = (accordionId, questionId, index) => {
-    if (!formState.value.monev_answers[accordionId]) return
-    const files = formState.value.monev_answers[accordionId].files.filter(
-      (f, i) => !(f.questionId === questionId && i === index),
-    )
-    formState.value.monev_answers[accordionId].files = files
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // ACTIONS — SUBMIT
-  // ══════════════════════════════════════════════════════════
-
-  const submitMonev = async () => {
-    isLoading.value = true
-    isError.value = false
-    errorMessage.value = ''
-
-    const accordionId = formState.value.active_accordion
-
-    try {
-      // ─── Step 1: Upload semua file ─────────────────────────
-      const accordionData = formState.value.monev_answers[accordionId] || {}
-      const fileEntries = accordionData.files || []
-      const uploadedFiles = []
-
-      for (const entry of fileEntries) {
-        const uploadResponse = await monitoringApi.uploadFile(entry.file)
-        if (uploadResponse.data.success) {
-          uploadedFiles.push({
-            questionId: entry.questionId,
-            object_name: uploadResponse.data.data.object_name,
-          })
-        }
-      }
-
-      // ─── Step 2: Build requestData ─────────────────────────
-      const requestData = {
-        // Metadata
-        jenis_paket: formState.value.jenis_paket,
-        jenis_kontributor: formState.value.jenis_kontributor,
-        kontributor_lainnya: formState.value.kontributor_lainnya || null,
-        nama_lengkap: formState.value.nama_lengkap,
-        identitas: formState.value.identitas,
-
-        // Lokasi
-        lokasi_pengawasan: formState.value.lokasi_pengawasan,
-
-        // Wilayah
-        provinsi_id: formState.value.provinsi_id,
-        embarkasi_id: formState.value.embarkasi_id,
-
-        // Monev
-        tab_id: formState.value.active_tab,
-        accordion_id: accordionId,
-
-        // Jawaban
-        jawaban: accordionData.answers || {},
-
-        // File paths dari MinIO
-        dokumen_bukti: uploadedFiles,
-      }
-
-      const response = await monitoringApi.submitMonev(requestData)
-
-      if (response.data.success) {
-        submitResult.value = response.data.data
-        showSuccessModal.value = true
-        clearLocalStorage()
-        return { success: true, data: response.data.data }
-      }
-
-      throw new Error(response.data.message || 'Gagal mengirim data monitoring')
-    } catch (error) {
-      isError.value = true
-      errorMessage.value =
-        error.response?.data?.message || error.message || 'Gagal mengirim data monitoring'
-      throw error
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // ACTIONS — LOCAL STORAGE
-  // ══════════════════════════════════════════════════════════
-
-  const saveToLocalStorage = () => {
-    try {
-      const snapshot = {
-        currentStep: currentStep.value,
-        formState: {
-          ...formState.value,
-          // File tidak bisa di-serialize, kosongkan
-          monev_answers: Object.fromEntries(
-            Object.entries(formState.value.monev_answers).map(([k, v]) => [
-              k,
-              { answers: v.answers, files: [] },
-            ]),
-          ),
-        },
-      }
-      localStorage.setItem(LS_KEY_FORM_STATE, JSON.stringify(snapshot))
-    } catch (e) {
-      console.warn('Failed to save to localStorage:', e)
-    }
-  }
-
-  const restoreFromLocalStorage = () => {
-    try {
-      const stored = localStorage.getItem(LS_KEY_FORM_STATE)
-      if (!stored) return false
-
-      const snapshot = JSON.parse(stored)
-
-      if (snapshot.currentStep !== undefined) {
-        currentStep.value = snapshot.currentStep
-      }
-
-      if (snapshot.formState) {
-        Object.assign(formState.value, snapshot.formState)
-      }
-
-      // Restore embarkasi list jika ada provinsi tersimpan
-      if (formState.value.provinsi_id) {
-        fetchEmbarkasiByProvinsi(formState.value.provinsi_id)
-      }
-
-      // Restore pertanyaan jika ada accordion aktif
-      if (formState.value.active_accordion) {
-        loadQuestions(formState.value.active_accordion)
-      }
-
-      return true
-    } catch (e) {
-      console.warn('Failed to restore from localStorage:', e)
-      return false
-    }
-  }
-
-  const clearLocalStorage = () => {
-    localStorage.removeItem(LS_KEY_FORM_STATE)
-    localStorage.removeItem(LS_KEY_STEP)
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // ACTIONS — RESET
-  // ══════════════════════════════════════════════════════════
-
-  const resetForm = () => {
-    currentStep.value = 0
+  // ============================================================
+  // ACTION — Reset
+  // ============================================================
+  function resetForm() {
     formState.value = {
-      jenis_paket: '',
-      jenis_kontributor: '',
-      kontributor_lainnya: '',
-      nama_lengkap: '',
-      identitas: '',
-      lokasi_pengawasan: {
-        kuh: null,
-        daker_bandara: null,
-        daker_madinah: null,
-        daker_mekkah: null,
-      },
-      provinsi_id: '',
-      provinsi_label: '',
-      embarkasi_id: '',
-      embarkasi_label: '',
-      active_tab: '6.1',
-      active_accordion: null,
+      paket_id: '', paket_label: '', paket_value: '',
+      kontributor_id: '', kontributor_label: '', kontributor_value: '',
+      kontributor_lainnya: '', nama_lengkap: '', identitas: '',
+      sektor_id: '', sektor_label: '', sektor_value: '',
+      lokasi_id: '', lokasi_label: '', lokasi_value: '',
+      provinsi_value: '', provinsi_label: '',
+      embarkasi_value: '', embarkasi_label: '',
+      tindakan_id: '', tindakan_label: '', tindakan_value: '',
       monev_answers: {},
     }
-    activeQuestions.value = []
-    submitResult.value = null
-    showSuccessModal.value = false
-    embarkasi_list.value = []
-    clearLocalStorage()
+    currentStep.value        = 1
+    monevTabs.value          = []
+    submittedSections.value  = new Set()
+    submitSuccess.value      = false
+    submitError.value        = null
+    embarkasiOptions.value   = []
+    _lastFetchedTindakan     = null
   }
 
-  // ══════════════════════════════════════════════════════════
+  // ============================================================
   // EXPOSE
-  // ══════════════════════════════════════════════════════════
+  // ============================================================
   return {
-    // State
-    isLoading,
-    isError,
-    errorMessage,
-    currentStep,
+    // Loading
+    isLoadingForm, isLoadingMonev, isLoadingEmb,
+    formLoadError, monevLoadError,
+
+    // Options
+    paketOptions, kontributorOptions,
+    sektorOptions, lokasiOptions,
+    provinsiOptions, embarkasiOptions,
+    tindakanOptions, questionMeta,
+
+    // Monev
+    monevTabs,
+
+    // Form state
     formState,
-    provinsiList,
-    embarkasi_list,
-    activeQuestions,
-    isLoadingQuestions,
-    submitResult,
-    showSuccessModal,
 
-    // Computed
-    isStepValid,
-    canProceed,
-    activeAccordionAnswers,
-    activeAccordionFiles,
+    // Stepper
+    currentStep, totalSteps, isLastStep, isFirstStep,
 
-    // Stepper navigation
-    goToStep,
-    nextStep,
-    prevStep,
+    // Submit state
+    isSubmitting, submitError, submitSuccess,
+    lastSubmittedSectionId, submittedSections,
 
-    // Form mutations
-    setJenisPaket,
-    setKontributor,
-    setKontributorLainnya,
-    setNamaLengkap,
-    setIdentitas,
-    setLokasi,
-    setProvinsi,
-    setEmbarkasi,
-    setActiveTab,
-    setActiveAccordion,
+    // Validasi
+    isStepValid, isCurrentStepValid,
 
-    // Answers
-    setAnswer,
-    setAnswerLainnya,
-    addFile,
-    removeFile,
-
-    // API
-    fetchProvinsi,
-    fetchEmbarkasiByProvinsi,
-    loadQuestions,
-    submitMonev,
-
-    // localStorage
-    saveToLocalStorage,
-    restoreFromLocalStorage,
-    clearLocalStorage,
-
-    // Reset
+    // Actions
+    fetchFormData, fetchMonevData, fetchEmbarkasi,
+    setPaket, setKontributor, setKontributorLainnya, setNamaLengkap,
+    setIdentitas, setSektor, setLokasi,
+    setProvinsi, setEmbarkasi, setTindakan,
+    setMonevAnswer, clearMonevSection,
+    buildPayload, submitMonev, isSectionSubmitted,
+    uploadFile, uploadFiles,
+    nextStep, prevStep, goToStep,
     resetForm,
   }
 })

@@ -1,68 +1,56 @@
 <template>
-  <div>
-    <h2 class="text-lg font-semibold text-[var(--color-text)] mb-1">Jenis Paket Haji</h2>
-    <p class="text-sm text-[var(--color-text-muted)] mb-6">
-      Pilih jenis paket haji yang akan diawasi
-    </p>
+  <div class="step-container">
+    <div class="step-header">
+      <h2 class="step-title">Pilih Jenis Paket</h2>
+      <p class="step-subtitle">Pilih jenis paket haji yang akan diawasi</p>
+    </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <!-- Loading State -->
+    <div v-if="store.isLoadingForm" class="flex flex-col gap-3 mt-4">
+      <div v-for="n in 2" :key="n" class="skeleton h-16 rounded-xl"></div>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="store.formLoadError" class="error-state">
+      <span class="material-icons text-[var(--color-error)] text-3xl">error_outline</span>
+      <p class="text-sm text-[var(--color-error)] mt-2">{{ store.formLoadError }}</p>
+      <button class="btn-secondary mt-3" @click="store.fetchFormData()">Coba Lagi</button>
+    </div>
+
+    <!-- Options -->
+    <div v-else class="grid grid-cols-1 gap-3 mt-4">
       <button
-        v-for="paket in JENIS_PAKET"
-        :key="paket.value"
-        class="relative flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 focus:outline-none"
-        :class="
-          selected === paket.value
-            ? 'border-primary bg-primary-50 shadow-sm'
-            : 'border-[var(--color-surface-2)] bg-[var(--color-surface)] hover:border-primary'
-        "
-        @click="store.setJenisPaket(paket.value)"
+        v-for="option in store.paketOptions"
+        :key="option.id"
+        type="button"
+        class="radio-card"
+        :class="{ active: store.formState.paket_id === option.id }"
+        @click="store.setPaket(option)"
       >
-        <!-- Icon -->
-        <div
-          class="w-14 h-14 rounded-xl flex items-center justify-center transition-colors"
-          :class="
-            selected === paket.value
-              ? 'bg-primary text-white'
-              : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)]'
-          "
-        >
-          <span class="material-icons text-3xl">
-            {{ paket.value === 'reguler' ? 'people' : 'star' }}
-          </span>
+        <span class="material-icons radio-card-icon">
+          {{ option.value === 'reguler' ? 'groups' : 'star' }}
+        </span>
+        <div class="radio-card-content">
+          <span class="radio-card-label">{{ option.label }}</span>
         </div>
-
         <span
-          class="text-base font-semibold"
-          :class="selected === paket.value ? 'text-primary' : 'text-[var(--color-text)]'"
+          class="material-icons radio-card-check"
+          :class="store.formState.paket_id === option.id ? 'opacity-100' : 'opacity-0'"
         >
-          {{ paket.label }}
+          check_circle
         </span>
-
-        <span class="text-xs text-[var(--color-text-faint)] text-center">
-          {{
-            paket.value === 'reguler'
-              ? 'Jemaah haji program reguler pemerintah'
-              : 'Jemaah haji program khusus / ONH plus'
-          }}
-        </span>
-
-        <!-- Checkmark pojok kanan atas -->
-        <div
-          v-if="selected === paket.value"
-          class="absolute top-3 right-3 w-5 h-5 bg-primary rounded-full flex items-center justify-center"
-        >
-          <span class="material-icons text-white text-xs">check</span>
-        </div>
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { onMounted } from 'vue'
 import { useMonitoringStore } from '@/stores/monitoring'
-import { JENIS_PAKET } from '@/constants/monitoring'
 
 const store = useMonitoringStore()
-const selected = computed(() => store.formState.jenis_paket)
+
+onMounted(() => {
+  store.fetchFormData()
+})
 </script>
