@@ -23,33 +23,26 @@ export const monitoringApi = {
 
   // ── Submit ─────────────────────────────────────────────────
   submitMonev(payload) {
-    return apiClient.post('/monitoring/submit', payload)
+    return apiClient.post('/submission', payload) // ✅
   },
 
   // ── Upload (multiple) ──────────────────────────────────────
   uploadFile(file) {
     const formData = new FormData()
     formData.append('file', file)
-    return apiClient.post('/upload/minio', formData, {
+    return apiClient.post('/upload', formData, {
+      // ✅
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-  },
-
-  // Upload multiple files — returns array of URLs
-  async uploadFiles(files) {
-    const results = await Promise.all(
-      Array.from(files).map((file) => monitoringApi.uploadFile(file))
-    )
-    return results.map((res) => res.data?.data?.url || res.data?.url || null).filter(Boolean)
   },
 
   // ── Riwayat (Admin) ────────────────────────────────────────
   getSubmissions(params = {}) {
     const query = new URLSearchParams({ page: params.page || 1, size: params.limit || 10 })
-    if (params.tab_id)       query.append('tabId',       params.tab_id)
-    if (params.section_id)   query.append('sectionId',   params.section_id)
-    if (params.date_from)    query.append('startDate',   params.date_from)
-    if (params.date_to)      query.append('endDate',     params.date_to)
+    if (params.tab_id) query.append('tabId', params.tab_id)
+    if (params.section_id) query.append('sectionId', params.section_id)
+    if (params.date_from) query.append('startDate', params.date_from)
+    if (params.date_to) query.append('endDate', params.date_to)
     return apiClient.get(`/monitoring/submissions?${query}`)
   },
 

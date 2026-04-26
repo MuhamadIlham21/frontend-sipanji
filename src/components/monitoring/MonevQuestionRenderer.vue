@@ -13,13 +13,10 @@
         :key="opt.id"
         type="button"
         class="radio-pill"
-        :class="{ active: modelValue === opt.id }"
-        @click="emit('update:modelValue', opt.id)"
+        :class="{ active: modelValue === opt.value }"
+        @click="emit('update:modelValue', opt.value)"
       >
-        <span
-          class="radio-pill-dot"
-          :class="{ active: modelValue === opt.id }"
-        />
+        <span class="radio-pill-dot" :class="{ active: modelValue === opt.value }" />
         {{ opt.label }}
       </button>
     </div>
@@ -35,10 +32,7 @@
     />
 
     <!-- ── DROPDOWN (tanpa options dari API) ── -->
-    <div
-      v-else-if="question.question_type === 'dropdown'"
-      class="flex flex-col gap-1"
-    >
+    <div v-else-if="question.question_type === 'dropdown'" class="flex flex-col gap-1">
       <input
         type="text"
         :value="modelValue || ''"
@@ -46,14 +40,11 @@
         placeholder="Ketik jawaban..."
         @input="emit('update:modelValue', $event.target.value)"
       />
-      <p class="text-xs text-[var(--color-text-faint)]">
-        Data pilihan belum tersedia — isi manual
-      </p>
+      <p class="text-xs text-[var(--color-text-faint)]">Data pilihan belum tersedia — isi manual</p>
     </div>
 
     <!-- ── FILE (multiple images) ── -->
     <div v-else-if="question.question_type === 'file'" class="file-upload-area">
-
       <!-- Dropzone -->
       <label
         class="dropzone"
@@ -84,9 +75,7 @@
           <span class="material-icons text-[var(--color-text-faint)] text-3xl">
             add_photo_alternate
           </span>
-          <p class="text-sm text-[var(--color-text-muted)]">
-            Klik atau seret foto ke sini
-          </p>
+          <p class="text-sm text-[var(--color-text-muted)]">Klik atau seret foto ke sini</p>
           <p class="text-xs text-[var(--color-text-faint)]">
             JPG, PNG, WEBP — Bisa lebih dari 1 foto
           </p>
@@ -99,18 +88,18 @@
       </p>
 
       <!-- Preview grid -->
-      <div v-if="uploadedUrls.length > 0" class="image-preview-grid mt-3">
-        <div
-          v-for="(url, index) in uploadedUrls"
-          :key="url"
-          class="image-preview-item"
-        >
-          <img
-            :src="url"
-            :alt="`Foto ${index + 1}`"
-            class="image-preview-thumb"
-            loading="lazy"
-          />
+      <div v-if="uploadedFiles.length > 0" class="image-preview-grid mt-3">
+        <div v-for="(file, index) in uploadedFiles" :key="file.id" class="image-preview-item">
+          <div
+            class="image-preview-thumb bg-[var(--color-surface-2)] flex flex-col items-center justify-center gap-1 p-1"
+          >
+            <span class="material-icons text-[var(--color-text-faint)] text-2xl">image</span>
+            <p
+              class="text-[10px] text-[var(--color-text-faint)] text-center truncate w-full px-1 leading-tight"
+            >
+              {{ file.file_name }}
+            </p>
+          </div>
           <button
             type="button"
             class="image-preview-remove"
@@ -122,9 +111,7 @@
           </button>
         </div>
       </div>
-
     </div>
-
   </div>
 </template>
 
@@ -151,22 +138,21 @@ const emit = defineEmits(['update:modelValue'])
 const store = useMonitoringStore()
 
 // ── File upload state ──────────────────────────────────────────
-const isDragging      = ref(false)
-const isUploading     = ref(false)
-const uploadError     = ref(null)
-const uploadProgress  = ref({ current: 0, total: 0 })
+const isDragging = ref(false)
+const isUploading = ref(false)
+const uploadError = ref(null)
+const uploadProgress = ref({ current: 0, total: 0 })
 
-// uploadedUrls: array URL hasil upload — sync dari modelValue jika array
-const uploadedUrls = ref(
-  Array.isArray(props.modelValue) ? [...props.modelValue] : []
-)
+// uploadedFiles: [{ id, file_name, object_name }]
+const uploadedFiles = ref([])
 
-// Sync jika modelValue berubah dari luar (misal saat reset)
 watch(
   () => props.modelValue,
   (val) => {
     if (props.question.question_type === 'file') {
-      uploadedUrls.value = Array.isArray(val) ? [...val] : []
+      if (!val || (Array.isArray(val) && val.length === 0)) {
+        uploadedFiles.value = []
+      }
     }
   },
 )
@@ -188,32 +174,28 @@ async function onDrop(event) {
 }
 
 async function processFiles(files) {
-  isUploading.value    = true
-  uploadError.value    = null
+  isUploading.value = true
+  uploadError.value = null
   uploadProgress.value = { current: 0, total: files.length }
 
   try {
-    const newUrls = []
-
     for (const file of Array.from(files)) {
-      // Validasi tipe
       if (!file.type.startsWith('image/')) {
         uploadError.value = `File "${file.name}" bukan gambar`
         continue
       }
-      // Validasi ukuran (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         uploadError.value = `File "${file.name}" terlalu besar (max 5MB)`
         continue
       }
-
-      const url = await store.uploadFile(file)
-      if (url) newUrls.push(url)
+      const result = await store.uploadFile(file)
+      if (result) uploadedFiles.value.push(result)
       uploadProgress.value.current++
     }
-
-    uploadedUrls.value = [...uploadedUrls.value, ...newUrls]
-    emit('update:modelValue', uploadedUrls.value)
+    emit(
+      'update:modelValue',
+      uploadedFiles.value.map((f) => f.id),
+    )
   } catch (err) {
     uploadError.value = err.message || 'Gagal mengupload foto'
   } finally {
@@ -222,7 +204,10 @@ async function processFiles(files) {
 }
 
 function removeImage(index) {
-  uploadedUrls.value.splice(index, 1)
-  emit('update:modelValue', [...uploadedUrls.value])
+  uploadedFiles.value.splice(index, 1)
+  emit(
+    'update:modelValue',
+    uploadedFiles.value.map((f) => f.id),
+  )
 }
 </script>

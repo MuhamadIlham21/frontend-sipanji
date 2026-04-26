@@ -6,7 +6,7 @@ const getBaseURL = () => {
   if (!url && import.meta.env.MODE === 'production') {
     console.error('VITE_API_BASE_URL not configured in production!')
   }
-  return url || 'http://43.129.58.40:8083'
+  return url || 'https://si-panji.id/api'
 }
 
 // Create axios instance

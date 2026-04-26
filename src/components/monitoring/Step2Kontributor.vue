@@ -88,6 +88,17 @@
       </p>
     </div>
 
+    <div class="form-group mt-4">
+      <label class="text-sm font-medium text-[var(--color-text)]">Email</label>
+      <input
+        type="email"
+        :value="store.formState.email"
+        placeholder="Masukkan alamat email"
+        class="input-field"
+        @input="store.setEmail($event.target.value)"
+      />
+    </div>
+
     <!-- Preview ringkasan -->
     <Transition name="fade">
       <div

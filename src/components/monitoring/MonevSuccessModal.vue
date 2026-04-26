@@ -73,10 +73,10 @@
 <script setup>
 import { computed } from 'vue'
 
-// const props = defineProps({
-//   modelValue: { type: Boolean, default: false },
-//   result: { type: Object, default: null },
-// })
+const props = defineProps({
+  modelValue: { type: Boolean, default: false },
+  result: { type: Object, default: null },
+})
 
 defineEmits(['close', 'reset'])
 

@@ -102,16 +102,15 @@
         </Transition>
       </div>
 
-      <!-- ── Navigasi Bawah ── -->
+      <!-- Ganti bagian navigasi bawah -->
       <div class="mt-5 flex justify-between items-center">
-        <!-- Tombol Kembali -->
         <button v-if="!store.isFirstStep" class="btn btn-outline gap-2" @click="store.prevStep">
           <span class="material-icons text-base">arrow_back</span>
           Kembali
         </button>
         <div v-else />
 
-        <!-- Tombol Lanjut (step 1–6) -->
+        <!-- Step 1–6: tombol Lanjut biasa -->
         <button
           v-if="!store.isLastStep"
           class="btn btn-primary gap-2"
@@ -122,19 +121,40 @@
           <span class="material-icons text-base">arrow_forward</span>
         </button>
 
-        <!-- Step 7 — tidak ada tombol Lanjut, accordion yang handle submit -->
+        <button
+          v-else-if="store.isLastStep"
+          class="btn btn-primary gap-2"
+          :disabled="store.isSubmitting || !store.activeSectionId"
+          @click="handleFinalSubmit"
+        >
+          <span v-if="store.isSubmitting" class="material-icons text-base animate-spin"
+            >autorenew</span
+          >
+          <span v-else class="material-icons text-base">send</span>
+          {{ store.isSubmitting ? 'Mengirim...' : 'Kirim Laporan' }}
+        </button>
       </div>
+
+      <!-- Modal sukses -->
+      <MonevSuccessModal
+        :model-value="showSuccessModal"
+        :result="store.submitResult"
+        @close="showSuccessModal = false"
+        @reset="handleReset"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, defineAsyncComponent } from 'vue'
+import { computed, onMounted, defineAsyncComponent, ref, watch } from 'vue'
 import { useMonitoringStore } from '@/stores/monitoring'
 import { MONITORING_STEPS } from '@/constants/monitoring'
 import logoURL from '@/assets/logo.png'
+import MonevSuccessModal from './MonevSuccessModal.vue'
 
 const store = useMonitoringStore()
+const showSuccessModal = ref(false)
 
 // ── Step Components (index 0 = step 1, dst) ──────────────────
 // Urutan HARUS sama dengan MONITORING_STEPS (step.id 1–7)
@@ -173,9 +193,31 @@ const bubbleClass = (stepId) => {
   return 'bg-white border-[var(--color-surface-2)] text-[var(--color-text-faint)]'
 }
 
+async function handleFinalSubmit() {
+  alert('Submit Dalam Pengembangan')
+  // try {
+  //   await store.submitMonev()
+  //   showSuccessModal.value = true
+  // } catch {
+  //   // error sudah di-handle di store
+  // }
+}
+
 // ── Init ──────────────────────────────────────────────────────
 onMounted(() => {
-  // fetchFormData akan skip otomatis jika sudah pernah di-fetch
+  store.restoreFromLocalStorage()
   store.fetchFormData()
 })
+
+const isAllComplete = computed(
+  () =>
+    store.monevTabs.length > 0 &&
+    store.monevTabs.every((tab) => tab.sections.every((s) => store.isSectionSubmitted(s.id))),
+)
+
+// Handler reset — tutup modal + reset store
+function handleReset() {
+  showSuccessModal.value = false
+  store.resetForm()
+}
 </script>
