@@ -23,11 +23,11 @@
             </div>
             <div class="hidden md:block text-left">
               <p class="text-sm font-semibold text-text leading-tight">
-                {{ isLoading ? '...' : user.name }}
+                {{ isLoading ? '...' : username }}
               </p>
-              <p class="text-xs text-text-muted">
-                {{ isLoading ? '...' : user.email }}
-              </p>
+              <!-- <p class="text-xs text-text-muted">
+                {{ isLoading ? '...' : username }}
+              </p> -->
             </div>
             <span class="material-icons text-text-faint text-sm">
               {{ isProfileOpen ? 'expand_less' : 'expand_more' }}
@@ -42,8 +42,8 @@
             >
               <!-- User Info -->
               <div class="px-4 py-3 border-b border-surface-2">
-                <p class="text-sm font-semibold text-text truncate">{{ user.name }}</p>
-                <p class="text-xs text-text-muted truncate">{{ user.email }}</p>
+                <p class="text-sm font-semibold text-text">{{ username }}</p>
+                <p class="text-xs text-text-muted">{{ authStore.user?.username || '-' }}</p>
               </div>
 
               <!-- Logout -->
@@ -72,8 +72,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useSidebarStore } from '@/stores/sidebar'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
+
+const authStore = useAuthStore()
+const router = useRouter()
 
 const sidebar = useSidebarStore()
 
@@ -82,22 +87,27 @@ const props = defineProps({
   subtitle: { type: String, default: '' },
 })
 
-const user = ref({ name: 'Belum login', email: '-' })
+// const user = ref({ name: 'Belum login', email: '-' })
+const user = ref({ name: '-', username: '-' })
 const isProfileOpen = ref(false)
 const isMobile = ref(window.innerWidth < 768)
 const isLoading = ref(false)
 
 const isSidebarExpanded = computed(() => sidebar.is_expanded)
-const userInitial = computed(() => user.value.name?.charAt(0).toUpperCase() || 'U')
+// const userInitial = computed(() => user.value.name?.charAt(0).toUpperCase() || 'U')
+
+const username = computed(
+  () => authStore.user?.username || localStorage.getItem('auth_username') || 'Admin',
+)
+const userInitial = computed(() => username.value?.charAt(0).toUpperCase() || 'A')
 
 const toggleProfile = () => {
   isProfileOpen.value = !isProfileOpen.value
 }
 
-const handleLogout = () => {
-  // uncomment saat auth store siap
-  // authStore.logout()
-  // router.push('/user/login')
+const handleLogout = async () => {
+  await authStore.logout()
+  router.push({ name: 'login' })
   isProfileOpen.value = false
 }
 
@@ -110,13 +120,6 @@ const handleClickOutside = (event) => {
     isProfileOpen.value = false
   }
 }
-
-onMounted(() => {
-  window.addEventListener('resize', handleResize)
-  document.addEventListener('click', handleClickOutside)
-  const stored = localStorage.getItem('auth_user')
-  if (stored) user.value = JSON.parse(stored)
-})
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)

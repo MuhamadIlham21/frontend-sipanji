@@ -49,4 +49,25 @@ export const monitoringApi = {
   getSubmissionDetail(id) {
     return apiClient.get(`/monitoring/submissions/${id}`)
   },
+
+  getSubmissionList() {
+    return apiClient.get('/secure/submission')
+  },
+
+  getSubmissionDetail(submissionId) {
+    return apiClient.get(`/secure/submission/${submissionId}`)
+  },
+
+  getUploadPreviewUrl(uploadId) {
+    return `${apiClient.defaults.baseURL}/secure/upload/${uploadId}`
+  },
+
+  getUploadFile(uploadId) {
+    return apiClient.get(`/secure/upload/${uploadId}`, {
+      responseType: 'blob',
+    })
+  },
+  getDashboard() {
+    return apiClient.get('/secure/dashboard')
+  },
 }

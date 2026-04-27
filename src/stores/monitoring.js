@@ -351,7 +351,17 @@ export const useMonitoringStore = defineStore('monitoring', () => {
 
     try {
       // Map tindakan_value → endpoint segment
-      const endpoint = tindakan === 'daily_monitor' ? 'daily-monitor' : tindakan
+      // const endpoint = tindakan === 'daily_monitor' ? 'daily-monitor' : tindakan
+
+      // SESUDAH
+      let endpoint
+      if (tindakan === 'daily_monitor') {
+        const isHajiKhusus = formState.value.paket_value === 'haji_khusus'
+        endpoint = isHajiKhusus ? 'haji-khusus' : 'daily-monitor'
+      } else {
+        endpoint = tindakan // 'temuan' → '.../temuan' (sama untuk semua paket)
+      }
+
       const { data: res } = await monitoringApi.getMonevQuestions(MONITORING_FORM_ID, endpoint)
       if (!res.success) throw new Error(res.message)
       _parseMonevData(res.data)

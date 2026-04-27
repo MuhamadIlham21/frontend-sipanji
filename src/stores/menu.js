@@ -13,6 +13,12 @@ export const useMenuStore = defineStore('menu', () => {
       icon: 'home',
       children: [],
     },
+    {
+      nama_menu: 'Laporan Monitoring',
+      url: 'laporan.monitoring',
+      icon: 'assignment_turned_in',
+      children: [],
+    },
   ]
 
   const structuredMenus = computed(() => {

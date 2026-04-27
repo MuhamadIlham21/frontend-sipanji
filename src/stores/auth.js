@@ -43,18 +43,12 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error(response.data.message || 'Login gagal')
       }
 
-      const { access_token, token_type, expires_in, user: userData } = response.data.data
+      const { token: accessToken } = response.data.data
 
-      token.value = access_token
-      user.value = userData
-      role.value = userData.role
-
-      localStorage.setItem('auth_token', access_token)
-      localStorage.setItem('token_type', token_type)
-      localStorage.setItem('expires_in', expires_in)
-      localStorage.setItem('auth_user', JSON.stringify(userData))
-      localStorage.setItem('user_role', userData.role)
-      localStorage.setItem('user_id', userData.id)
+      token.value = accessToken
+      user.value = { username: credentials.username }
+      localStorage.setItem('auth_token', accessToken)
+      localStorage.setItem('auth_username', credentials.username)
 
       message.value = response.data.message || 'Login berhasil'
       success.value = true
@@ -89,11 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
       success.value = null
 
       localStorage.removeItem('auth_token')
-      localStorage.removeItem('auth_user')
-      localStorage.removeItem('user_role')
-      localStorage.removeItem('token_type')
-      localStorage.removeItem('expires_in')
-      localStorage.removeItem('user_id')
+      localStorage.removeItem('auth_username')
 
       menuStore.clearMenus()
       return { success: true }
@@ -108,14 +98,11 @@ export const useAuthStore = defineStore('auth', () => {
   // ==========================================
   const checkAuth = () => {
     const storedToken = localStorage.getItem('auth_token')
-    const storedUser = localStorage.getItem('auth_user')
-    const storedRole = localStorage.getItem('user_role')
 
-    if (storedToken && storedUser) {
+    if (storedToken) {
       token.value = storedToken
-      user.value = JSON.parse(storedUser)
-      role.value = storedRole || user.value?.role
-
+      const storedUsername = localStorage.getItem('auth_username')
+      if (storedUsername) user.value = { username: storedUsername }
       return true
     }
 

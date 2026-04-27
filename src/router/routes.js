@@ -32,6 +32,33 @@ const routes = [
       requiresAuth: true,
     },
   },
+
+  {
+    path: '/admin/laporan-monitoring',
+    name: 'laporan.monitoring',
+    component: () => import('@/views/Laporan/LaporanMonitoring.vue'),
+    meta: {
+      title: 'Laporan Monitoring',
+      subtitle: 'Hasil submit monitoring operasional haji',
+      breadcrumb: [{ label: 'Laporan Monitoring', link: null }],
+      requiresAuth: true,
+    },
+  },
+
+  {
+    path: '/admin/laporan-monitoring/:id',
+    name: 'laporan.monitoring.detail',
+    component: () => import('@/views/Laporan/DetailMonitoring.vue'),
+    meta: {
+      title: 'Detail Monitoring',
+      subtitle: 'Detail hasil submit monitoring',
+      breadcrumb: [
+        { label: 'Laporan Monitoring', link: 'laporan.monitoring' },
+        { label: 'Detail', link: null },
+      ],
+      requiresAuth: true,
+    },
+  },
 ]
 
 export default routes

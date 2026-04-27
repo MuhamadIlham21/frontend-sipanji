@@ -1,8 +1,8 @@
 import apiClient from './axios'
 
 export const authApi = {
-  login(cretentials) {
-    return apiClient.post('/auth/login-inpassing', cretentials)
+  login(credentials) {
+    return apiClient.post('/auth/login', credentials) // fix endpoint
   },
   loginUserInstansi(cretentials) {
     return apiClient.post('/auth/login-instansi', cretentials)

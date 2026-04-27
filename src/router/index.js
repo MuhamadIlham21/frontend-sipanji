@@ -22,14 +22,34 @@ router.beforeEach(async (to, from) => {
     authStore.checkAuth()
   }
 
-  // 1. Public routes
-  const publicRoutes = ['login', 'dashboard']
-  if (publicRoutes.includes(to.name)) {
-    await menuStore.fetchUserMenus()
-    return true
-  }
+  // // 1. Public routes
+  // const publicRoutes = ['login', 'dashboard']
+  // if (publicRoutes.includes(to.name)) {
+  //   await menuStore.fetchUserMenus()
+  //   return true
+  // }
 
-  // 2. Login page redirect if already logged in
+  // // 2. Login page redirect if already logged in
+  // if (to.name === 'login') {
+  //   if (authStore.isAuthenticated) {
+  //     return { name: 'dashboard' }
+  //   }
+  //   return true
+  // }
+
+  // // 3. Protected routes
+  // if (!authStore.isAuthenticated && to.meta.requiresAuth) {
+  //   return {
+  //     name: 'login',
+  //     query: { redirect: to.fullPath },
+  //   }
+  // }
+
+  // await menuStore.fetchUserMenus()
+
+  // return true
+
+  // Redirect ke dashboard jika sudah login dan akses /login
   if (to.name === 'login') {
     if (authStore.isAuthenticated) {
       return { name: 'dashboard' }
@@ -37,8 +57,8 @@ router.beforeEach(async (to, from) => {
     return true
   }
 
-  // 3. Protected routes
-  if (!authStore.isAuthenticated && to.meta.requiresAuth) {
+  // Protected routes — redirect ke login jika belum auth
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return {
       name: 'login',
       query: { redirect: to.fullPath },
@@ -46,7 +66,6 @@ router.beforeEach(async (to, from) => {
   }
 
   await menuStore.fetchUserMenus()
-
   return true
 })
 // ==========================================
