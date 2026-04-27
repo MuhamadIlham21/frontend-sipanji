@@ -531,6 +531,15 @@ export const useMonitoringStore = defineStore('monitoring', () => {
     delete formState.value.monev_answers[sectionId]
   }
 
+  // Cek apakah section sudah punya minimal 1 jawaban non-kosong
+  function isSectionFilled(sectionId) {
+    const answers = formState.value.monev_answers[sectionId]
+    if (!answers) return false
+    return Object.values(answers).some(
+      (v) => v !== '' && v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0),
+    )
+  }
+
   // ============================================================
   // COMPUTED — Validasi per Step
   // ============================================================
@@ -548,6 +557,11 @@ export const useMonitoringStore = defineStore('monitoring', () => {
   })
 
   const isCurrentStepValid = computed(() => isStepValid.value[currentStep.value] ?? false)
+
+  // Jumlah section yang sudah diisi (untuk progress indicator di Step6)
+  const filledSectionsCount = computed(
+    () => Object.keys(formState.value.monev_answers).filter((id) => isSectionFilled(id)).length,
+  )
 
   // ============================================================
   // ACTION — Navigasi
@@ -592,12 +606,20 @@ export const useMonitoringStore = defineStore('monitoring', () => {
       { question_id: meta.tindakan_id_q, value: f.tindakan_value },
     ].filter((a) => a.question_id && a.value !== '' && a.value !== undefined)
 
-    // Step 7 — hanya section yang aktif
-    const sectionAnswers = f.monev_answers[activeSectionId.value] || {}
-    Object.entries(sectionAnswers).forEach(([questionId, value]) => {
-      if (value === '' || value === null || value === undefined) return
-      const finalValue = Array.isArray(value) ? JSON.stringify(value) : String(value)
-      answers.push({ question_id: questionId, value: finalValue })
+    // const sectionAnswers = f.monev_answers[activeSectionId.value] || {}
+    // Object.entries(sectionAnswers).forEach(([questionId, value]) => {
+    //   if (value === '' || value === null || value === undefined) return
+    //   const finalValue = Array.isArray(value) ? JSON.stringify(value) : String(value)
+    //   answers.push({ question_id: questionId, value: finalValue })
+    // })
+
+    // Step 7 — semua section yang sudah diisi (semua tab)
+    Object.values(f.monev_answers).forEach((sectionAnswers) => {
+      Object.entries(sectionAnswers).forEach(([questionId, value]) => {
+        if (value === '' || value === null || value === undefined) return
+        const finalValue = Array.isArray(value) ? JSON.stringify(value) : String(value)
+        answers.push({ question_id: questionId, value: finalValue })
+      })
     })
 
     return {
@@ -612,24 +634,6 @@ export const useMonitoringStore = defineStore('monitoring', () => {
   // ============================================================
   // ACTION — Submit
   // ============================================================
-  // async function submitMonev() {
-  //   isSubmitting.value = true
-  //   submitError.value = null
-  //   submitSuccess.value = false
-
-  //   try {
-  //     const payload = buildPayload()
-  //     const { data: res } = await monitoringApi.submitMonev(payload)
-  //     if (!res.success) throw new Error(res.message)
-  //     submitResult.value = res.data // ← simpan result untuk modal
-  //     submitSuccess.value = true
-  //   } catch (err) {
-  //     submitError.value = err?.response?.data?.message || err.message || 'Gagal menyimpan data'
-  //     throw err
-  //   } finally {
-  //     isSubmitting.value = false
-  //   }
-  // }
   async function submitMonev() {
     isSubmitting.value = true
     submitError.value = null
@@ -637,11 +641,12 @@ export const useMonitoringStore = defineStore('monitoring', () => {
 
     try {
       const payload = buildPayload()
+      console.log('Submitting payload:', payload)
       const { data: res } = await monitoringApi.submitMonev(payload)
       if (!res.success) throw new Error(res.message)
       submitResult.value = res.data
       submitSuccess.value = true
-      clearLocalStorage() // ← bersihkan session setelah berhasil
+      clearLocalStorage()
     } catch (err) {
       submitError.value = err?.response?.data?.message || err.message || 'Gagal menyimpan data'
       throw err
@@ -764,6 +769,7 @@ export const useMonitoringStore = defineStore('monitoring', () => {
     // Validasi
     isStepValid,
     isCurrentStepValid,
+    filledSectionsCount,
 
     // Actions
     fetchFormData,
@@ -782,6 +788,7 @@ export const useMonitoringStore = defineStore('monitoring', () => {
     setTindakan,
     setMonevAnswer,
     clearMonevSection,
+    isSectionFilled,
     buildPayload,
     submitMonev,
     uploadFile,
