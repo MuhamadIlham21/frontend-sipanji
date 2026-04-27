@@ -151,23 +151,32 @@
                 class="px-6 py-4 text-sm"
                 :class="column.align || 'text-left'"
               >
-                <div
-                  v-if="column.formatter || column.style"
-                  :class="[
-                    typeof column.style === 'function' ? column.style(row[column.key], row) : '',
-                  ]"
-                  class="inline-block rounded px-2 py-1"
-                >
-                  <span v-if="column.formatter">
-                    {{ column.formatter(row[column.key], row) }}
-                  </span>
-                  <span v-else>
+                <slot
+                  v-if="$slots[`cell-${column.key}`]"
+                  :name="`cell-${column.key}`"
+                  :value="row[column.key]"
+                  :row="row"
+                />
+                <!-- Fallback: formatter / style / plain -->
+                <template v-else>
+                  <div
+                    v-if="column.formatter || column.style"
+                    :class="[
+                      typeof column.style === 'function' ? column.style(row[column.key], row) : '',
+                    ]"
+                    class="inline-block rounded px-2 py-1"
+                  >
+                    <span v-if="column.formatter">
+                      {{ column.formatter(row[column.key], row) }}
+                    </span>
+                    <span v-else>
+                      {{ row[column.key] }}
+                    </span>
+                  </div>
+                  <span v-else class="text-gray-900">
                     {{ row[column.key] }}
                   </span>
-                </div>
-                <span v-else class="text-gray-900">
-                  {{ row[column.key] }}
-                </span>
+                </template>
               </td>
               <td v-if="$slots.actions" class="px-6 py-4 whitespace-nowrap text-right text-sm">
                 <slot name="actions" :row="row" :index="index" />

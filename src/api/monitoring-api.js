@@ -70,4 +70,7 @@ export const monitoringApi = {
   getDashboard() {
     return apiClient.get('/secure/dashboard')
   },
+  updateSubmissionStatus(submissionId, payload) {
+    return apiClient.put(`/secure/submission/${submissionId}`, payload)
+  },
 }

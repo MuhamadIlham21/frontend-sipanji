@@ -14,6 +14,8 @@ export const useMonitoringSubmissionStore = defineStore('monitoringSubmission', 
   const error = ref(null)
   const currentPage = ref(1)
   const pageSize = ref(10)
+  const isUpdatingStatus = ref(false)
+  const updateStatusError = ref(null)
 
   // ============================================================
   // COMPUTED
@@ -54,6 +56,37 @@ export const useMonitoringSubmissionStore = defineStore('monitoringSubmission', 
       error.value = err?.response?.data?.message || err.message || 'Gagal memuat data'
     } finally {
       isLoading.value = false
+    }
+  }
+
+  // ============================================================
+  // ACTIONS
+  // ============================================================
+  async function updateStatus(submissionId, status, catatan = '') {
+    isUpdatingStatus.value = true
+    updateStatusError.value = null
+
+    try {
+      const payload = { status }
+      if (catatan.trim()) payload.catatan = catatan.trim()
+
+      const { data: res } = await monitoringApi.updateSubmissionStatus(submissionId, payload)
+      if (!res.success) throw new Error(res.message)
+
+      // Update lokal — tidak perlu re-fetch semua
+      const idx = submissions.value.findIndex((s) => s.id === submissionId)
+      if (idx !== -1) {
+        submissions.value[idx].status = status
+        submissions.value[idx].catatan = catatan.trim() || null
+      }
+
+      return { success: true }
+    } catch (err) {
+      updateStatusError.value =
+        err?.response?.data?.message || err.message || 'Gagal mengubah status'
+      return { success: false, message: updateStatusError.value }
+    } finally {
+      isUpdatingStatus.value = false
     }
   }
 
@@ -133,11 +166,14 @@ export const useMonitoringSubmissionStore = defineStore('monitoringSubmission', 
     currentDetail,
     isLoadingDetail,
     detailError,
+    isUpdatingStatus,
+    updateStatusError,
     fetchSubmissionDetail,
     isImageArray,
     parseImageIds,
     fetchSubmissions,
     setPage,
     setPageSize,
+    updateStatus,
   }
 })

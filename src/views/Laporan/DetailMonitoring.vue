@@ -32,6 +32,45 @@
             <h1 class="text-lg font-bold text-text">Detail Submission</h1>
             <p class="text-sm text-text-muted">{{ route.params.id }}</p>
           </div>
+          <!-- Status Badge  Tombol Edit -->
+          <div class="ml-auto flex items-center gap-3">
+            <span
+              v-if="statusData.status === 'close'"
+              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
+              style="background-color: #dcfce7; color: #15803d"
+            >
+              <span class="material-icons text-sm">check_circle</span>
+              Close
+            </span>
+            <span
+              v-else
+              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
+              style="background-color: #fef9c3; color: #a16207"
+            >
+              <span class="material-icons text-sm">pending</span>
+              Open
+            </span>
+            <button
+              @click="openStatusModal"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors"
+              :style="{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }"
+            >
+              <span class="material-icons text-base">edit</span>
+              Ubah Status
+            </button>
+          </div>
+        </div>
+
+        <!-- Catatan (jika ada) -->
+        <div
+          v-if="statusData.catatan"
+          class="mb-6 flex items-start gap-3 bg-surface border border-surface-2 rounded-xl px-4 py-3"
+        >
+          <span class="material-icons text-text-muted mt-0.5">notes</span>
+          <div>
+            <p class="text-xs text-text-muted mb-1">Catatan Tindak Lanjut</p>
+            <p class="text-sm text-text">{{ statusData.catatan }}</p>
+          </div>
         </div>
 
         <!-- Informasi Umum -->
@@ -147,12 +186,133 @@
           </div>
         </div>
       </Transition>
+
+      <!-- Modal Update Status -->
+      <Transition name="fade">
+        <div
+          v-if="showStatusModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style="background-color: rgba(0, 0, 0, 0.4)"
+          @click.self="closeStatusModal"
+        >
+          <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div class="flex items-center justify-between mb-5">
+              <div>
+                <h3 class="font-semibold text-text text-lg">Ubah Status</h3>
+                <p class="text-xs text-text-muted mt-0.5 truncate max-w-xs">
+                  {{ statusData.ticket_no || route.params.id }}
+                </p>
+              </div>
+              <button
+                @click="closeStatusModal"
+                class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-offset transition-colors"
+              >
+                <span class="material-icons text-text-muted">close</span>
+              </button>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-text mb-2">Status</label>
+              <div class="flex gap-3">
+                <button
+                  @click="modalStatus = 'open'"
+                  class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-medium transition-all"
+                  :style="
+                    modalStatus === 'open'
+                      ? { borderColor: '#a16207', backgroundColor: '#fef9c3', color: '#a16207' }
+                      : { borderColor: '#e5e7eb', backgroundColor: '#fff', color: '#6b7280' }
+                  "
+                >
+                  <span class="material-icons text-base">pending</span>
+                  Open
+                </button>
+                <button
+                  @click="modalStatus = 'close'"
+                  class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-medium transition-all"
+                  :style="
+                    modalStatus === 'close'
+                      ? { borderColor: '#15803d', backgroundColor: '#dcfce7', color: '#15803d' }
+                      : { borderColor: '#e5e7eb', backgroundColor: '#fff', color: '#6b7280' }
+                  "
+                >
+                  <span class="material-icons text-base">check_circle</span>
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <Transition name="slide-down">
+              <div v-if="modalStatus === 'close'" class="mb-5">
+                <label class="block text-sm font-medium text-text mb-2">
+                  Catatan
+                  <span class="text-text-muted font-normal">(opsional)</span>
+                </label>
+                <textarea
+                  v-model="modalCatatan"
+                  rows="3"
+                  placeholder="Tuliskan catatan tindak lanjut..."
+                  class="w-full border border-surface-2 rounded-xl px-3 py-2.5 text-sm text-text resize-none focus:outline-none focus:ring-2 transition-all"
+                  :style="{ '--tw-ring-color': 'var(--color-primary)' }"
+                ></textarea>
+              </div>
+            </Transition>
+
+            <p
+              v-if="store.updateStatusError"
+              class="text-sm text-red-600 mb-4 flex items-center gap-1"
+            >
+              <span class="material-icons text-base">error_outline</span>
+              {{ store.updateStatusError }}
+            </p>
+
+            <div class="flex gap-3">
+              <button
+                @click="closeStatusModal"
+                class="flex-1 py-2.5 rounded-xl border border-surface-2 text-sm font-medium text-text-muted hover:bg-surface-offset transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                @click="handleUpdateStatus"
+                :disabled="store.isUpdatingStatus"
+                class="flex-1 py-2.5 rounded-xl text-sm font-medium text-white transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                :style="{ backgroundColor: 'var(--color-primary)' }"
+              >
+                <span v-if="store.isUpdatingStatus" class="material-icons text-base animate-spin">
+                  refresh
+                </span>
+                {{ store.isUpdatingStatus ? 'Menyimpan...' : 'Simpan' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </template>
   </UserLayoutApp>
 </template>
 
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.2s ease;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+</style>
+
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import UserLayoutApp from '@/Layouts/UserLayoutApp.vue'
 import { useMonitoringSubmissionStore } from '@/stores/monitoring-submission'
@@ -178,6 +338,38 @@ const openLightbox = (uploadId, alt) => {
 // const onImageError = (event) => {
 //   event.target.style.display = 'none'
 // }
+
+// ============================================================
+// STATUS STATE — dari router state (dikirim LaporanMonitoring)
+// ============================================================
+const statusData = ref({
+  status: history.state?.status || 'open',
+  catatan: history.state?.catatan || '',
+  ticket_no: history.state?.ticket_no || '',
+})
+
+const showStatusModal = ref(false)
+const modalStatus = ref(statusData.value.status)
+const modalCatatan = ref(statusData.value.catatan)
+
+const openStatusModal = () => {
+  modalStatus.value = statusData.value.status
+  modalCatatan.value = statusData.value.catatan
+  showStatusModal.value = true
+}
+
+const closeStatusModal = () => {
+  showStatusModal.value = false
+}
+
+const handleUpdateStatus = async () => {
+  const result = await store.updateStatus(route.params.id, modalStatus.value, modalCatatan.value)
+  if (result.success) {
+    statusData.value.status = modalStatus.value
+    statusData.value.catatan = modalCatatan.value
+    closeStatusModal()
+  }
+}
 
 // ============================================================
 // LIFECYCLE
