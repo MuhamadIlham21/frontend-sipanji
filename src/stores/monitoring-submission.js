@@ -17,15 +17,26 @@ export const useMonitoringSubmissionStore = defineStore('monitoringSubmission', 
   const isUpdatingStatus = ref(false)
   const updateStatusError = ref(null)
 
+  // Server-side pagination & filter state
+  const totalItems = ref(0)
+  const totalPages = ref(0)
+  const searchQuery = ref('')
+  const filterPaket = ref('')
+  const filterTindakan = ref('')
+
   // ============================================================
   // COMPUTED
   // ============================================================
-  const totalSubmissions = computed(() => submissions.value.length)
+  // const totalSubmissions = computed(() => submissions.value.length)
 
-  const paginatedSubmissions = computed(() => {
-    const start = (currentPage.value - 1) * pageSize.value
-    return submissions.value.slice(start, start + pageSize.value)
-  })
+  // const paginatedSubmissions = computed(() => {
+  //   const start = (currentPage.value - 1) * pageSize.value
+  //   return submissions.value.slice(start, start + pageSize.value)
+  // })
+  const totalSubmissions = computed(() => totalItems.value)
+
+  // Tidak perlu slice — data sudah di-page oleh API
+  const paginatedSubmissions = computed(() => submissions.value)
 
   // ============================================================
   // HELPERS
@@ -40,18 +51,54 @@ export const useMonitoringSubmissionStore = defineStore('monitoringSubmission', 
   // ============================================================
   // ACTIONS
   // ============================================================
-  async function fetchSubmissions() {
+  // async function fetchSubmissions() {
+  //   isLoading.value = true
+  //   error.value = null
+
+  //   try {
+  //     const { data: res } = await monitoringApi.getSubmissionList()
+  //     if (!res.success) throw new Error(res.message)
+
+  //     submissions.value = res.data.map((item) => ({
+  //       ...item,
+  //       tipe: getTipeFromTicket(item.ticket_no),
+  //     }))
+  //   } catch (err) {
+  //     error.value = err?.response?.data?.message || err.message || 'Gagal memuat data'
+  //   } finally {
+  //     isLoading.value = false
+  //   }
+  // }
+
+  async function fetchSubmissions(params = {}) {
     isLoading.value = true
     error.value = null
 
+    // Sinkronkan state filter dari params yang masuk
+    if (params.search !== undefined) searchQuery.value = params.search
+    if (params.paketHaji !== undefined) filterPaket.value = params.paketHaji
+    if (params.tindakan !== undefined) filterTindakan.value = params.tindakan
+    if (params.page !== undefined) currentPage.value = params.page
+    if (params.limit !== undefined) pageSize.value = params.limit
+
     try {
-      const { data: res } = await monitoringApi.getSubmissionList()
+      const { data: res } = await monitoringApi.getSubmissionList({
+        page: currentPage.value,
+        size: pageSize.value,
+        search: searchQuery.value || undefined,
+        paketHaji: filterPaket.value || undefined,
+        tindakan: filterTindakan.value || undefined,
+      })
       if (!res.success) throw new Error(res.message)
 
-      submissions.value = res.data.map((item) => ({
+      submissions.value = (res.data || []).map((item) => ({
         ...item,
         tipe: getTipeFromTicket(item.ticket_no),
       }))
+
+      // Simpan meta dari API
+      totalItems.value = res.meta?.total || 0
+      totalPages.value = res.meta?.page_count || 0
     } catch (err) {
       error.value = err?.response?.data?.message || err.message || 'Gagal memuat data'
     } finally {
@@ -90,13 +137,24 @@ export const useMonitoringSubmissionStore = defineStore('monitoringSubmission', 
     }
   }
 
+  // function setPage(page) {
+  //   currentPage.value = page
+  // }
+
+  // function setPageSize(size) {
+  //   pageSize.value = size
+  //   currentPage.value = 1
+  // }
+
   function setPage(page) {
     currentPage.value = page
+    fetchSubmissions()
   }
 
   function setPageSize(size) {
     pageSize.value = size
     currentPage.value = 1
+    fetchSubmissions()
   }
 
   // ============================================================
@@ -163,6 +221,11 @@ export const useMonitoringSubmissionStore = defineStore('monitoringSubmission', 
     pageSize,
     totalSubmissions,
     paginatedSubmissions,
+    totalItems,
+    totalPages,
+    searchQuery,
+    filterPaket,
+    filterTindakan,
     currentDetail,
     isLoadingDetail,
     detailError,

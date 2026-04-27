@@ -23,6 +23,50 @@
         :error="store.error"
         @fetch-data="onFetchData"
       >
+        <!-- Filter Dropdown -->
+        <template #filters>
+          <div class="flex flex-wrap gap-3">
+            <!-- Filter Paket Haji -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-gray-600 whitespace-nowrap">Paket Haji:</label>
+              <select
+                v-model="filterPaket"
+                @change="onFilterChange"
+                class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:border-transparent transition-all"
+                :style="{ '--tw-ring-color': 'var(--color-primary)' }"
+              >
+                <option value="">Semua</option>
+                <option value="reguler">Reguler</option>
+                <option value="haji_khusus">Haji Khusus</option>
+              </select>
+            </div>
+
+            <!-- Filter Tindakan -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-gray-600 whitespace-nowrap">Tindakan:</label>
+              <select
+                v-model="filterTindakan"
+                @change="onFilterChange"
+                class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:border-transparent transition-all"
+                :style="{ '--tw-ring-color': 'var(--color-primary)' }"
+              >
+                <option value="">Semua</option>
+                <option value="daily_monitor">Daily Monitor</option>
+                <option value="temuan">Temuan</option>
+              </select>
+            </div>
+
+            <!-- Reset Filter -->
+            <button
+              v-if="filterPaket || filterTindakan"
+              @click="resetFilter"
+              class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-colors border border-gray-300 hover:bg-gray-50 text-gray-600"
+            >
+              <span class="material-icons text-base">filter_alt_off</span>
+              Reset Filter
+            </button>
+          </div>
+        </template>
         <!-- Badge Status -->
         <template #cell-status="{ value }">
           <span
@@ -200,7 +244,7 @@
 </style>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import UserLayoutApp from '@/Layouts/UserLayoutApp.vue'
 import DataTable from '@/components/DataTable/DataTable.vue'
 import { useMonitoringSubmissionStore } from '@/stores/monitoring-submission'
@@ -209,6 +253,12 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const store = useMonitoringSubmissionStore()
+
+// ============================================================
+// FILTER STATE
+// ============================================================
+const filterPaket = ref('')
+const filterTindakan = ref('')
 
 // ============================================================
 // MODAL STATE
@@ -235,6 +285,12 @@ const handleUpdateStatus = async () => {
   if (!modalRow.value) return
   const result = await store.updateStatus(modalRow.value.id, modalStatus.value, modalCatatan.value)
   if (result.success) closeStatusModal()
+}
+
+const resetFilter = () => {
+  filterPaket.value = ''
+  filterTindakan.value = ''
+  onFilterChange()
 }
 
 // ============================================================
@@ -277,13 +333,33 @@ const tableData = computed(() => {
 // ============================================================
 // METHODS
 // ============================================================
+// const onFetchData = (params) => {
+//   store.setPage(params.page)
+//   store.setPageSize(params.limit)
+//   // Hanya fetch dari API jika belum ada data atau search berubah
+//   if (store.submissions.length === 0) {
+//     store.fetchSubmissions()
+//   }
+// }
+
 const onFetchData = (params) => {
-  store.setPage(params.page)
-  store.setPageSize(params.limit)
-  // Hanya fetch dari API jika belum ada data atau search berubah
-  if (store.submissions.length === 0) {
-    store.fetchSubmissions()
-  }
+  store.fetchSubmissions({
+    page: params.page,
+    limit: params.limit,
+    search: params.search,
+    paketHaji: filterPaket.value,
+    tindakan: filterTindakan.value,
+  })
+}
+
+const onFilterChange = () => {
+  store.fetchSubmissions({
+    page: 1,
+    limit: store.pageSize,
+    search: store.searchQuery,
+    paketHaji: filterPaket.value,
+    tindakan: filterTindakan.value,
+  })
 }
 
 const viewDetail = (row) => {
@@ -309,7 +385,7 @@ function decodeHtml(str) {
     .replace(/&quot;/g, '"')
 }
 
-onMounted(() => {
-  store.fetchSubmissions()
-})
+// onMounted(() => {
+//   store.fetchSubmissions()
+// })
 </script>

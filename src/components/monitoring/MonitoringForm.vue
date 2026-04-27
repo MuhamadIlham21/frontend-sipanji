@@ -17,14 +17,14 @@
           >
             <img :src="logoURL" class="w-16 h-16" alt="Logo SiPanji" />
             <div>
-              <h1 class="text-xl font-bold text-white tracking-wide">SiPanji</h1>
+              <h1 class="text-xl font-bold text-white tracking-wide">Si-Panji</h1>
               <p class="text-xs text-white/70 mt-0.5">Sistem Informasi Pengendali Layanan Haji</p>
             </div>
             <div class="ml-auto">
               <span
                 class="px-3 py-1 rounded-full bg-[var(--color-accent)] text-[var(--color-text)] text-xs font-bold shadow-sm"
               >
-                1446 H
+                1447 H
               </span>
             </div>
           </div>
@@ -135,7 +135,7 @@
           <button
             v-else-if="store.isLastStep"
             class="btn btn-primary gap-2"
-            :disabled="store.isSubmitting || !store.activeSectionId"
+            :disabled="store.isSubmitting || store.filledSectionsCount === 0"
             @click="handleFinalSubmit"
           >
             <span v-if="store.isSubmitting" class="material-icons text-base animate-spin"

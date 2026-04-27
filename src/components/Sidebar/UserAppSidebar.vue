@@ -15,8 +15,8 @@
           <div class="sidebar-logo-area" :class="!sidebar.is_expanded && 'justify-center'">
             <img :src="logoURL" alt="Logo SiPanji" class="w-10 h-10 object-contain shrink-0" />
             <div v-if="sidebar.is_expanded" class="overflow-hidden min-w-0">
-              <h4 class="text-text-inverse font-bold text-base truncate leading-tight">SiPanji</h4>
-              <p class="text-white/50 text-xs truncate">Pengendalian Haji</p>
+              <h4 class="text-text-inverse font-bold text-base truncate leading-tight">Si-Panji</h4>
+              <p class="text-white/50 text-xs truncate">Sistem Informasi Pengendali Layanan Haji</p>
             </div>
           </div>
           <div class="sidebar-divider mt-3"></div>

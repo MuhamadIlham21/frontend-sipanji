@@ -50,8 +50,21 @@ export const monitoringApi = {
     return apiClient.get(`/monitoring/submissions/${id}`)
   },
 
-  getSubmissionList() {
-    return apiClient.get('/secure/submission')
+  // getSubmissionList() {
+  //   return apiClient.get('/secure/submission')
+  // },
+
+  getSubmissionList(params = {}) {
+    const query = new URLSearchParams()
+
+    query.append('page', params.page || 1)
+    query.append('size', params.size || 10)
+
+    if (params.search) query.append('search', params.search)
+    if (params.paketHaji) query.append('paketHaji', params.paketHaji)
+    if (params.tindakan) query.append('tindakan', params.tindakan)
+
+    return apiClient.get(`/secure/submission?${query}`)
   },
 
   getSubmissionDetail(submissionId) {

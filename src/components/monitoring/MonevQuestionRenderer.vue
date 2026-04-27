@@ -31,8 +31,26 @@
       @input="emit('update:modelValue', $event.target.value)"
     />
 
-    <!-- ── DROPDOWN (tanpa options dari API) ── -->
+    <!-- ── DROPDOWN ── -->
     <div v-else-if="question.question_type === 'dropdown'" class="flex flex-col gap-1">
+      <select
+        :value="modelValue || ''"
+        class="input-field"
+        @change="emit('update:modelValue', $event.target.value)"
+      >
+        <!-- Placeholder kosong -->
+        <option value="" disabled>Pilih salah satu...</option>
+
+        <!-- Options dari API -->
+        <option v-for="opt in question.options || []" :key="opt.id" :value="opt.value">
+          {{ opt.label }}
+        </option>
+      </select>
+
+      <p class="text-xs text-[var(--color-text-faint)]">Pilih jawaban yang paling sesuai.</p>
+    </div>
+
+    <!-- <div v-else-if="question.question_type === 'dropdown'" class="flex flex-col gap-1">
       <input
         type="text"
         :value="modelValue || ''"
@@ -41,7 +59,7 @@
         @input="emit('update:modelValue', $event.target.value)"
       />
       <p class="text-xs text-[var(--color-text-faint)]">Data pilihan belum tersedia — isi manual</p>
-    </div>
+    </div> -->
 
     <!-- ── FILE (multiple images) ── -->
     <div v-else-if="question.question_type === 'file'" class="file-upload-area">
@@ -116,7 +134,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useMonitoringStore } from '@/stores/monitoring'
 
 // ── Props & Emits ──────────────────────────────────────────────
@@ -146,16 +164,50 @@ const uploadProgress = ref({ current: 0, total: 0 })
 // uploadedFiles: [{ id, file_name, object_name }]
 const uploadedFiles = ref([])
 
+// watch(
+//   () => props.modelValue,
+//   (val) => {
+//     if (props.question.question_type === 'file') {
+//       if (!val || (Array.isArray(val) && val.length === 0)) {
+//         uploadedFiles.value = []
+//       }
+//     }
+//   },
+// )
+
+function restorePreviewFromIds(ids) {
+  uploadedFiles.value = ids.map((id, idx) => ({
+    id,
+    file_name: `Lampiran ${idx + 1}`,
+  }))
+}
+
 watch(
   () => props.modelValue,
   (val) => {
-    if (props.question.question_type === 'file') {
-      if (!val || (Array.isArray(val) && val.length === 0)) {
-        uploadedFiles.value = []
-      }
+    if (props.question.question_type !== 'file') return
+    if (!val || (Array.isArray(val) && val.length === 0)) {
+      uploadedFiles.value = []
+      return
+    }
+    // Restore preview jika uploadedFiles kosong (habis unmount)
+    if (Array.isArray(val) && uploadedFiles.value.length === 0) {
+      restorePreviewFromIds(val)
     }
   },
+  { immediate: true },
 )
+
+onMounted(() => {
+  if (
+    props.question.question_type === 'file' &&
+    Array.isArray(props.modelValue) &&
+    props.modelValue.length > 0 &&
+    uploadedFiles.value.length === 0
+  ) {
+    restorePreviewFromIds(props.modelValue)
+  }
+})
 
 // ── File handler ───────────────────────────────────────────────
 async function onFileChange(event) {

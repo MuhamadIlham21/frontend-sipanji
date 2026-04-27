@@ -47,7 +47,11 @@ const isError = ref(false)
 onMounted(async () => {
   try {
     const { data: blob } = await monitoringApi.getUploadFile(props.uploadId)
-    blobUrl.value = URL.createObjectURL(blob)
+    // blobUrl.value = URL.createObjectURL(blob)
+    // Buat ulang Blob dengan MIME type dari response, fallback ke octet-stream
+    const mime = blob.type || 'application/octet-stream'
+    const typedBlob = new Blob([blob], { type: mime })
+    blobUrl.value = URL.createObjectURL(typedBlob)
   } catch {
     isError.value = true
   } finally {
