@@ -18,7 +18,7 @@
             <img :src="logoURL" class="w-16 h-16" alt="Logo SiPanji" />
             <div>
               <h1 class="text-xl font-bold text-white tracking-wide">SiPanji</h1>
-              <p class="text-xs text-white/70 mt-0.5">Sistem Pengendalian Operasional Haji</p>
+              <p class="text-xs text-white/70 mt-0.5">Sistem Informasi Pengendali Layanan Haji</p>
             </div>
             <div class="ml-auto">
               <span

@@ -69,11 +69,12 @@ export const useAuthStore = defineStore('auth', () => {
   // ==========================================
   const logout = async () => {
     try {
-      if (token.value) {
-        await apiClient.post('/auth/logout')
-      }
+      // if (token.value) {
+      //   await apiClient.post('/auth/logout')
+      // }
 
       const menuStore = useMenuStore()
+      console.log('✅ Logout successful, clearing auth state and menus')
 
       // Clear state
       user.value = null
