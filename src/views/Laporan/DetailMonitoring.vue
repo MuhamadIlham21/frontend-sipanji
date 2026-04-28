@@ -91,7 +91,35 @@
               class="bg-background rounded-lg p-3"
             >
               <p class="text-xs text-text-muted mb-1">{{ item.label }}</p>
-              <p class="text-sm font-medium text-text">{{ item.value || '-' }}</p>
+              <!-- <p class="text-sm font-medium text-text">{{ item.value || '-' }}</p> -->
+              <!-- Image Array (misal: Upload Evidence di temuan) -->
+              <div v-if="store.isImageArray(item.value)" class="flex flex-wrap gap-2 mt-1">
+                <div
+                  v-for="imgId in store.parseImageIds(item.value)"
+                  :key="imgId"
+                  class="relative group cursor-pointer"
+                  @click="openLightbox(imgId, item.label)"
+                >
+                  <SecureImage
+                    :upload-id="imgId"
+                    :alt="item.label"
+                    container-class="w-24 h-24"
+                    img-class="border border-surface-2 hover:opacity-90 transition-opacity"
+                  />
+                  <div
+                    class="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-colors flex items-center justify-center"
+                  >
+                    <span
+                      class="material-icons text-white opacity-0 group-hover:opacity-100 transition-opacity text-sm"
+                    >
+                      zoom_in
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Regular Text -->
+              <p v-else class="text-sm font-medium text-text">{{ item.value || '-' }}</p>
             </div>
           </div>
         </div>

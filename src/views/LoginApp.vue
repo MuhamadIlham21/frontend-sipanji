@@ -99,8 +99,8 @@
           <div class="flex items-center gap-3 mb-8">
             <img :src="logoURL" class="w-20 h-20" alt="Logo SiPanji" />
             <div>
-              <h1 class="text-xl font-bold text-text">SiPanji</h1>
-              <p class="text-sm text-text-muted">Sistem Pengendalian Operasional Haji</p>
+              <h1 class="text-xl font-bold text-text">Si-Panji</h1>
+              <p class="text-sm text-text-muted">Sistem Informasi Pengendali Layanan Haji</p>
             </div>
           </div>
 
@@ -189,12 +189,12 @@
                     Ingat saya
                   </span>
                 </label>
-                <a
+                <!-- <a
                   href="#"
                   class="text-sm font-medium text-primary hover:text-primary-700 transition-colors"
                 >
                   Lupa password?
-                </a>
+                </a> -->
               </div>
 
               <!-- Submit Button -->
@@ -265,7 +265,7 @@
               <img :src="logoURL" class="w-32 h-32 drop-shadow-lg" alt="Logo SiPanji" />
             </div>
             <h3 class="text-3xl font-bold mb-4 leading-snug">
-              Sistem Pengendalian Operasional Haji
+              Sistem Informasi Pengendali Layanan Haji
             </h3>
             <p class="text-base text-primary-200 mb-8">
               Aplikasi resmi untuk mendukung proses operasional, verifikasi, dan pengendalian
