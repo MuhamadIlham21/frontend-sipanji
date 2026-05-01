@@ -31,6 +31,24 @@
       @input="emit('update:modelValue', $event.target.value)"
     />
 
+    <!-- ── DATE ── -->
+    <input
+      v-else-if="question.question_type === 'date'"
+      type="date"
+      :value="modelValue || ''"
+      class="input-field"
+      @change="emit('update:modelValue', $event.target.value)"
+    />
+
+    <!-- ── TIME ── -->
+    <input
+      v-else-if="question.question_type === 'time'"
+      type="time"
+      :value="modelValue || ''"
+      class="input-field"
+      @change="emit('update:modelValue', $event.target.value)"
+    />
+
     <!-- ── DROPDOWN ── -->
     <div v-else-if="question.question_type === 'dropdown'" class="flex flex-col gap-1">
       <select
@@ -49,17 +67,6 @@
 
       <p class="text-xs text-[var(--color-text-faint)]">Pilih jawaban yang paling sesuai.</p>
     </div>
-
-    <!-- <div v-else-if="question.question_type === 'dropdown'" class="flex flex-col gap-1">
-      <input
-        type="text"
-        :value="modelValue || ''"
-        class="input-field"
-        placeholder="Ketik jawaban..."
-        @input="emit('update:modelValue', $event.target.value)"
-      />
-      <p class="text-xs text-[var(--color-text-faint)]">Data pilihan belum tersedia — isi manual</p>
-    </div> -->
 
     <!-- ── FILE (multiple images) ── -->
     <div v-else-if="question.question_type === 'file'" class="file-upload-area">
