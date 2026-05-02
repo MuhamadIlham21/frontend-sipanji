@@ -58,6 +58,17 @@
               <span class="material-icons text-base">edit</span>
               Ubah Status
             </button>
+            <button
+              @click="handleExportPdf"
+              :disabled="isExporting"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors disabled:opacity-60"
+              :style="{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }"
+            >
+              <span class="material-icons text-base" :class="{ 'animate-spin': isExporting }">
+                {{ isExporting ? 'autorenew' : 'picture_as_pdf' }}
+              </span>
+              {{ isExporting ? 'Mengekspor...' : 'Export PDF' }}
+            </button>
           </div>
         </div>
 
@@ -71,6 +82,21 @@
             <p class="text-xs text-text-muted mb-1">Catatan Tindak Lanjut</p>
             <p class="text-sm text-text">{{ statusData.catatan }}</p>
           </div>
+        </div>
+
+        <!-- Export Error -->
+        <div
+          v-if="exportError"
+          class="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3"
+        >
+          <span class="material-icons text-red-500 text-base">error_outline</span>
+          <p class="text-sm text-red-600">{{ exportError }}</p>
+          <button
+            @click="exportError = null"
+            class="ml-auto text-red-400 hover:text-red-600 transition-colors"
+          >
+            <span class="material-icons text-base">close</span>
+          </button>
         </div>
 
         <!-- Informasi Umum -->
@@ -345,6 +371,7 @@ import { useRoute, useRouter } from 'vue-router'
 import UserLayoutApp from '@/Layouts/UserLayoutApp.vue'
 import { useMonitoringSubmissionStore } from '@/stores/monitoring-submission'
 import SecureImage from '@/components/Common/SecureImage.vue'
+import { monitoringApi } from '@/api/monitoring-api'
 
 const route = useRoute()
 const router = useRouter()
@@ -355,8 +382,29 @@ const store = useMonitoringSubmissionStore()
 // ============================================================
 const lightbox = ref({ show: false, uploadId: '', alt: '' })
 
+const isExporting = ref(false)
+const exportError = ref(null)
+
 const openLightbox = (uploadId, alt) => {
   lightbox.value = { show: true, uploadId, alt }
+}
+
+const handleExportPdf = async () => {
+  isExporting.value = true
+  exportError.value = null
+  try {
+    const { data: blob } = await monitoringApi.exportSubmissionPdf(route.params.id)
+    const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `submission-${route.params.id}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    exportError.value = err?.response?.data?.message || 'Gagal mengekspor PDF'
+  } finally {
+    isExporting.value = false
+  }
 }
 
 // const getImageUrl = (uploadId) => {

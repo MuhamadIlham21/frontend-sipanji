@@ -80,6 +80,17 @@ export const monitoringApi = {
       responseType: 'blob',
     })
   },
+
+  exportSubmissionPdf(submissionId) {
+    return apiClient.post(
+      `/secure/submission/${submissionId}/export-pdf`,
+      {},
+      {
+        responseType: 'blob',
+      },
+    )
+  },
+
   getDashboard() {
     return apiClient.get('/secure/dashboard')
   },
