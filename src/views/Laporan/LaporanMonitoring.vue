@@ -297,8 +297,10 @@ const resetFilter = () => {
 // COLUMNS
 // ============================================================
 const columns = [
-  { key: 'ticket_no', label: 'Ticket No', sortable: true },
-  { key: 'nama', label: 'Nama', sortable: true },
+  { key: 'ticket_no', label: 'Ticket No', sortable: false },
+  { key: 'nama', label: 'Nama', sortable: false },
+  { key: 'nama_pihk', label: 'Nama PIHK', sortable: false },
+  { key: 'jenis_haji', label: 'Jenis Haji', sortable: false },
   { key: 'nik', label: 'NIK / NIP', sortable: false },
   { key: 'email', label: 'Email', sortable: false },
   {
