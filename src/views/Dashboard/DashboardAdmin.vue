@@ -77,7 +77,7 @@
       </div>
 
       <!-- Distribusi Charts -->
-      <!-- <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <div class="bg-surface rounded-xl shadow-sm border border-surface-2 p-5">
           <div class="mb-4">
             <h2 class="font-semibold text-text">Distribusi Provinsi</h2>
@@ -121,10 +121,10 @@
             <p class="text-sm">Belum ada data distribusi embarkasi</p>
           </div>
         </div>
-      </div> -->
+      </div>
 
       <!-- Data Terbaru -->
-      <!-- <div class="bg-surface rounded-xl shadow-sm border border-surface-2 p-5 mb-6">
+      <div class="bg-surface rounded-xl shadow-sm border border-surface-2 p-5 mb-6">
         <div class="mb-4 flex items-center justify-between">
           <div>
             <h2 class="font-semibold text-text">Submission Terbaru</h2>
@@ -212,7 +212,7 @@
           <span class="material-icons text-5xl mb-2">inbox</span>
           <p class="text-sm">Belum ada submission</p>
         </div>
-      </div> -->
+      </div>
     </template>
   </UserLayoutApp>
 </template>

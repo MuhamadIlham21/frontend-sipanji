@@ -298,6 +298,7 @@ const resetFilter = () => {
 // ============================================================
 const columns = [
   { key: 'ticket_no', label: 'Ticket No', sortable: false },
+  { key: 'kategori', label: 'Kategori', sortable: false },
   { key: 'nama', label: 'Nama', sortable: false },
   { key: 'nama_pihk', label: 'Nama PIHK', sortable: false },
   { key: 'jenis_haji', label: 'Jenis Haji', sortable: false },
@@ -326,6 +327,7 @@ const tableData = computed(() => {
     nama: decodeHtml(item.nama) || '-',
     nik: item.nik || '-',
     email: decodeHtml(item.email) || '-',
+    kategori: item.kategori || '-',
     tipe: item.tipe || '-',
     status: item.status || 'open',
     catatan: item.catatan || '',

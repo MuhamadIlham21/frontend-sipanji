@@ -69,6 +69,17 @@
               </span>
               {{ isExporting ? 'Mengekspor...' : 'Export PDF' }}
             </button>
+            <button
+              @click="handleExportExcel"
+              :disabled="isExportingExcel"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors disabled:opacity-60"
+              :style="{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }"
+            >
+              <span class="material-icons text-base" :class="{ 'animate-spin': isExportingExcel }">
+                {{ isExportingExcel ? 'autorenew' : 'table_view' }}
+              </span>
+              {{ isExportingExcel ? 'Mengekspor...' : 'Export Excel' }}
+            </button>
           </div>
         </div>
 
@@ -93,6 +104,20 @@
           <p class="text-sm text-red-600">{{ exportError }}</p>
           <button
             @click="exportError = null"
+            class="ml-auto text-red-400 hover:text-red-600 transition-colors"
+          >
+            <span class="material-icons text-base">close</span>
+          </button>
+        </div>
+
+        <div
+          v-if="exportExcelError"
+          class="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3"
+        >
+          <span class="material-icons text-red-500 text-base">error_outline</span>
+          <p class="text-sm text-red-600">{{ exportExcelError }}</p>
+          <button
+            @click="exportExcelError = null"
             class="ml-auto text-red-400 hover:text-red-600 transition-colors"
           >
             <span class="material-icons text-base">close</span>
@@ -366,7 +391,7 @@
 </style>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import UserLayoutApp from '@/Layouts/UserLayoutApp.vue'
 import { useMonitoringSubmissionStore } from '@/stores/monitoring-submission'
@@ -384,6 +409,8 @@ const lightbox = ref({ show: false, uploadId: '', alt: '' })
 
 const isExporting = ref(false)
 const exportError = ref(null)
+const isExportingExcel = ref(false)
+const exportExcelError = ref(null)
 
 const openLightbox = (uploadId, alt) => {
   lightbox.value = { show: true, uploadId, alt }
@@ -404,6 +431,28 @@ const handleExportPdf = async () => {
     exportError.value = err?.response?.data?.message || 'Gagal mengekspor PDF'
   } finally {
     isExporting.value = false
+  }
+}
+
+const handleExportExcel = async () => {
+  isExportingExcel.value = true
+  exportExcelError.value = null
+  try {
+    const { data: blob } = await monitoringApi.exportSubmissionExcel(route.params.id)
+    const url = URL.createObjectURL(
+      new Blob([blob], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      }),
+    )
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `submission-${route.params.id}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    exportExcelError.value = err?.response?.data?.message || 'Gagal mengekspor Excel'
+  } finally {
+    isExportingExcel.value = false
   }
 }
 

@@ -91,6 +91,16 @@ export const monitoringApi = {
     )
   },
 
+  exportSubmissionExcel(submissionId) {
+    return apiClient.post(
+      `/secure/submission/${submissionId}/export-excel`,
+      {},
+      {
+        responseType: 'blob',
+      },
+    )
+  },
+
   getDashboard() {
     return apiClient.get('/secure/dashboard')
   },
